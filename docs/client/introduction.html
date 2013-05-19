@@ -6,54 +6,45 @@ not here -->
 
 {{#markdown}}
 
-<b>_Meteor is an ultra-simple environment for building modern websites.
-What once took weeks, even with the best tools, now takes hours with
-Meteor._</b>
+<b>_Meteor 是个用来打造现代网站的极简易环境。曾经即使用上最好的工具都需要几周时间来打造的应用，
+现在使用 Meteor 只需要几小时。_</b>
 
-The web was originally designed to work in the same way that mainframes
-worked in the 70s.  The application server rendered a screen and sent it
-over the network to a dumb terminal. Whenever the user did anything,
-that server rerendered a whole new screen. This model served the Web
-well for over a decade. It gave rise to LAMP, Rails, Django, PHP.
+互联网诞生时，是按照大型机在 70 年代时的工作方式来设计的。即，服务端渲染一个屏幕，然后通过网络
+把它传送给终端。当用户在终端上有所指示时，服务器就再渲染一个新的屏幕过去。这个模型令人满意地
+工作了十几年，并催生了 LAMP，Rails，Django，PHP 等技术。
 
-But the best teams, with the biggest budgets and the longest schedules,
-now build applications in JavaScript that run on the client.  These apps
-have stellar interfaces.  They don't reload pages.  They are reactive:
-changes from any client immediately appear on everyone's screen.
+但是目前那些有着大笔预算和长久开发周期的顶尖团队，正用 Javascript 开发着跑在客户端上的应用。
+这类应用有着稳定的接口，他们不重载页面，并且他们是会响应的：任一客户端的变化都
+会实时反映在其他每个人的屏幕上。
 
-They've built them the hard way.  Meteor makes it an order of
-magnitude simpler, and a lot more fun.  You can build a complete
-application in a weekend, or a sufficiently caffeinated hackathon.  No
-longer do you need to provision server resources, or deploy API
-endpoints in the cloud, or manage a database, or wrangle an ORM layer,
-or swap back and forth between JavaScript and Ruby, or broadcast data
-invalidations to clients.
+这类应用很难开发，而 Meteor 的使命就是要让这一过程变得简单和有趣。你可以在一周
+或是一个咖啡因充足的 hackathon 内打造一个完整的程序。
 
-Meteor is a work in progress, but we hope it shows the direction of
-our thinking.  We'd love to hear your feedback.
+你不再需要提供服务器资源，不再需要在云端提供 API 接口，不再需要管理数据库，
+不再需要为 ORM 纠结，不再需要在 Ruby 和 JS 中切换，不再需要广播数据无效信息给客户端。
 
+Meteor 仍在开发中，但我们希望它展示了我们思考。我们很欢迎你的反馈！
 
 ## Quick start!
 
 <!-- change colors on these. $ and command output in grey, rest in
 white -->
 
-The following works on all [supported
-platforms](https://github.com/meteor/meteor/wiki/Supported-Platforms).
+下面的代码可于这些操作系统上被支持：[supported platforms](https://github.com/meteor/meteor/wiki/Supported-Platforms)
 
-Install Meteor:
+安装 Meteor：
 
 <pre>
 $ curl https://install.meteor.com | /bin/sh
 </pre>
 
-Create a project:
+创建一个项目：
 
 <pre>
 $ meteor create myapp
 </pre>
 
-Run it locally:
+本地运行：
 
 <pre>
 $ cd myapp
@@ -61,79 +52,67 @@ $ meteor
 =&gt; Meteor server running on: http://localhost:3000/
 </pre>
 
-Unleash it on the world (on a free server we provide):
+部署到云端（用 Meteor 的免费服务器）：
 
 <pre>
 $ meteor deploy myapp.meteor.com
 </pre>
 
-<h2 id="sevenprinciples">Seven Principles of Meteor</h2>
+<h2 id="sevenprinciples">Meteor 的七项原则</h2>
 
 <!-- wire with [1,2,3] on it -->
-- _Data on the Wire_. Don't send HTML over the network. Send data and
-let the client decide how to render it.
+- _Data on the Wire_. 不在网络上传输 HTML，只传输数据并让客户端决定如何渲染。
 
 <!-- two people, one speech bubble coming out of both of their mouths,
 containing '{}' -->
-- _One Language._ Write both the client and the server parts of your
-interface in JavaScript.
+- _One Language._ 前后端统一使用 JS 编写。
 
 <!-- globe, with the same database icon in US and Russia -->
-- _Database Everywhere_. Use the same transparent API to access your
-database from the client or the server.
+- _Database Everywhere_. 透明地在客户端或服务端上使用同样的 API 来访问数据库。
 
 <!-- clock with zero time elapsed. or clock on left with zero time
 elapsed, horizontal bold line to a clock with zero time elapsed, but a
 line at a 45 degree angle to a a clock in grey with 100 ms
 elapsed. like shades of relativity -->
-- _Latency Compensation_. On the client, use prefetching and model
-simulation to make it look like you have a zero-latency connection to
-the database.
+- _Latency Compensation_. 在客户端上，使用『预抓取』和『model 模拟』来达到与服务器零延迟的效果。
 
 <!-- knee getting hit with hammer like in reflex test -->
-- _Full Stack Reactivity_. Make realtime the default. All layers, from
-database to template, should make an event-driven interface available.
+- _Full Stack Reactivity_. 实时模式是默认的。从数据库到模版的所有层面上，都需要实现事件驱动的接口。
 
-- _Embrace the Ecosystem_. Meteor is open source and integrates,
-rather than replaces, existing open source tools and frameworks.
+- _Embrace the Ecosystem_. Meteor 是开源的，并且与现有的工具和库相互配合，而不是取代他们。
 
 <!-- zen circle -->
-- _Simplicity Equals Productivity_. The best way to make something
-seem simple is to have it actually _be_ simple. Accomplish this through
-clean, classically beautiful APIs.
+- _Simplicity Equals Productivity_. 让一件事看起来简单的秘诀就是让它实际上也变得简单。我们通过干净并具有古典美的 API 来实现这一点。
 
 
-<h2 id="resources">Developer Resources</h2>
+<h2 id="resources">开发者资源</h2>
 
 <!-- https://github.com/blog/273-github-ribbons -->
 <a href="http://github.com/meteor/meteor"><img class="github-ribbon visible-desktop" style="position: absolute; top: 0; right: 0; border: 0;" src="/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
 
-If anything in Meteor catches your interest, we hope you'll get involved
-with the project!
+如果你对于 Meteor 有兴趣的话，我们衷心希望你能参与到项目中来！
 
 <dl class="involved">
 <dt><span>Stack Overflow</span></dt>
-<dd>The best place to ask (and answer!) technical questions is on <a href="http://stackoverflow.com/questions/tagged/meteor">Stack
-  Overflow</a>.  Be sure to add
-  the <code>meteor</code> tag to your question.
+<dd>问答科技相关问题的最佳地点就是 <a href="http://stackoverflow.com/questions/tagged/meteor">Stack
+  Overflow</a>，并确认你的问题中标记了 <code>meteor</code> 标签。
 </dd>
 
-<dt><span>Mailing lists</span></dt>
+<dt><span>邮件列表</span></dt>
 <dd>
-  We have two mailing lists for Meteor.  <nobr><a href="http://groups.google.com/group/meteor-talk"><code>meteor-talk@googlegroups.com</code></a></nobr>
-  is for general questions, requests for help, and new project
-  announcements.
+  Meteor 有两个邮件列表。  <nobr><a href="http://groups.google.com/group/meteor-talk"><code>meteor-talk@googlegroups.com</code></a></nobr>
+  是用来提问常规问题，寻求帮助，或是宣告新项目的。
   <nobr><a href="http://groups.google.com/group/meteor-core"><code>meteor-core@googlegroups.com</code></a></nobr>
-  is for discussing Meteor internals and proposed changes.
+  是用来讨论 Meteor 内部实现以及提交建议的。
 </dd>
 
 <dt><span>IRC</span></dt>
-<dd><code>#meteor</code> on <code>irc.freenode.net</code>. The
-developers hang out here and will answer your questions whenever they
-can.</dd>
+<dd><code>#meteor</code> on <code>irc.freenode.net</code>. 开发者会挂在上面并积极回答你的问题。</dd>
 
 <dt><span>GitHub</span></dt>
-<dd>The code is on <a href="http://github.com/meteor/meteor">GitHub</a>. The best way to send a patch is with a GitHub pull request, and the best way to file a bug is in the GitHub bug tracker. If the issue contains sensitive information or raises a security concern, email <code>security</code><code>@</code><code>meteor</code><code>.</code><code>com</code> instead, which will page the security team.</dd>
+<dd>Meteor 的代码在 <a href="http://github.com/meteor/meteor">GitHub</a> 上。
+  我们欢迎你通过 GitHub pull request 来提交补丁，并欢迎你通过 GitHub issue 来报 bug。如果你的 issue 中包含敏感信息，请邮件联系
+   <code>security</code><code>@</code><code>meteor</code><code>.</code><code>com</code> 。</dd>
 </dl>
 
 {{/markdown}}
