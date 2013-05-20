@@ -2,10 +2,8 @@
 
 <h1 id="concepts">Concepts</h1>
 
-We've written our fair share of single-page JavaScript applications by hand.
-Writing an entire application in one language (JavaScript) with one
-data format (JSON) is a real joy.  Meteor is everything we wanted
-when writing those apps.
+我们已经徒手写过大量的单页面 JavaScript 程序了，只一种语言（JavaScript）和一种数据格式（JSON）来写程序
+真是一件美事。Meteor 提供了你写这类程序时需要的一切。
 
 {{> structure }}
 {{> data }}
@@ -19,22 +17,20 @@ when writing those apps.
 <template name="structure">
 {{#better_markdown}}
 
-<h2 id="structuringyourapp">Structuring your application</h2>
+<h2 id="structuringyourapp">架构你的应用</h2>
 
-A Meteor application is a mix of JavaScript that runs inside a client web
-browser, JavaScript that runs on the Meteor server inside a
-[Node.js](http://nodejs.org/) container, and all the supporting HTML fragments,
-CSS rules, and static assets.  Meteor automates the packaging and transmission
-of these different components.  And, it is quite flexible about how you choose
-to structure those components in your file tree.
+一个 Meteor 应用由三部分组成：
 
-The only server asset is JavaScript.  Meteor gathers all your JavaScript
-files, excluding anything under the `client`
-and `public` subdirectories, and loads them into a Node.js
-server instance inside a fiber.  In Meteor, your server code runs in
-a single thread per request, not in the asynchronous callback style
-typical of Node.  We find the linear execution model a better fit for
-the typical server code in a Meteor application.
+* 运行在浏览器中的 JavaScript
+* 运行在 Meteor 服务端上的 Node.js 运行时中的 JavaScript
+* HTML 片段，CSS 规则，以及一些静态文件
+
+Meteor 会自动打包并传送这不同的几部分。And，你可以在你的代码树中很灵活地选择如何架构这些组件。
+
+服务端的唯一组件就是 JavaScript 代码，Meteor 会收集除了 `client` 和 `public` 子文件之外的
+所有 JavaScript 文件，并把他们都载入到一个 fiber 中的 Node.js 服务端实例。在 Meteor 中，
+每个请求都会让你的服务端启动一个线程，而非 Node.js 传统的异步回调模式。我们发现线性计算模型更适合
+典型的 Meteor 服务端代码。
 
 There are more assets to consider on the client side.  Meteor
 gathers all JavaScript files in your tree with the exception of
