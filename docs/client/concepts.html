@@ -431,29 +431,26 @@ attribute changes.
 <template name="templates">
 {{#better_markdown}}
 
-<h2 id="templates">Templates</h2>
+<h2 id="templates">模板</h2>
 
-Meteor makes it easy to use your favorite HTML templating language,
-such as Handlebars or Jade, along with Meteor's live page update
-technology. Just write your template as you normally would, and Meteor
-will take care of making it update in realtime.
+Meteor 的在线页面更新技术可以使你很轻松地使用你喜欢的 HTML 模板语言，
+像 Handlebars 和 Jade。只要如往常一样写你的模板，Meteor 会负责实时更新
+它。
 
-To use this feature, create a file in your project with the `.html`
-extension. In the file, make a `<template>` tag and give it a
-`name` attribute. Put the template contents inside the tag. Meteor
-will precompile the template, ship it down to the client, and make it
-available as a function on the global `Template` object.
+要使用这个特性，在你的项目中使用扩展名 `.html` 创建一个文件。在文件中，
+构造一个 `<template>` 标签并给它一个 `name` 属性。在标签中放置模板内容。
+Meteor 会预编译模板，运送它到客户端，然后使它可以在全局 `Template`
+对象中作为一个有效的函数。
+
 
 {{#note}}
-Today, the only templating system that has been packaged for Meteor is
-Handlebars. Let us know what templating systems you'd like to use with
-Meteor. Meanwhile, see the [Handlebars
-documentation](http://www.handlebarsjs.com/) and [Meteor Handlebars
-extensions](https://github.com/meteor/meteor/wiki/Handlebars).
+现在，在 Meteor 中被打包的模板只有 Handlebars。请让我们知道：在 Meteor 中，
+你想使用什么模板系统。同时，请看 [Handlebars documentation](http://www.handlebarsjs.com/)
+和 [Meteor Handlebars extensions](https://github.com/meteor/meteor/wiki/Handlebars)
 {{/note}}
 
-A template with a `name` of `hello` is rendered by calling the
-function `Template.hello`, passing any data for the template:
+一个 `name` 属性为 `hello` 的模板会调用函数 `Template.hello` 来渲染，
+然后传递模板中的所有数据：
 
     <!-- in myapp.html -->
     <template name="hello">
@@ -464,18 +461,18 @@ function `Template.hello`, passing any data for the template:
     > Template.hello({first: "Alyssa", last: "Hacker"});
      => "<div class="greeting">Hello there, Alyssa Hacker!</div>"
 
-This returns a string. To use the template along with the [`Live
-HTML`](#livehtml) system, and get DOM elements that update
-automatically in place, use [`Meteor.render`](#meteor_render):
+这会返回一个字符串。要想把模板与 [`Live HTML`](#livehtml) 系统一同
+使用，并在适当位置自动更新获取到的 DOM 元素，请用
+[`Meteor.render`](#meteor_render)：
 
     Meteor.render(function () {
       return Template.hello({first: "Alyssa", last: "Hacker"});
     })
       => automatically updating DOM elements
 
-The easiest way to get data into templates is by defining helper
-functions in JavaScript. Just add the helper functions directly on the
-`Template.[template name]` object. For example, in this template:
+获取模板中的数据的最简单的方法是在 JavaScript 中定义辅助函数。只要在
+`Template.[template name]` 对象中直接加入辅助函数就可以了。例如，在这个
+模板中：
 
     <template name="players">
       {{dstache}}#each topScorers}}
@@ -483,20 +480,17 @@ functions in JavaScript. Just add the helper functions directly on the
       {{dstache}}/each}}
     </{{! }}template>
 
-instead of passing in `topScorers` as data when we call the
-template function, we could define a function on `Template.players`:
+我们可以通过定义函数 `Template.players`，来更换当传递数据
+`topScorers` 时所调用模板函数：
 
     Template.players.topScorers = function () {
       return Users.find({score: {$gt: 100}}, {sort: {score: -1}});
     };
 
-In this case, the data is coming from a database query. When the
-database cursor is passed to `#each`, it will wire up all of the
-machinery to efficiently add and move DOM nodes as new results enter
-the query.
+我们可以通过定义函数 `Template.players`，来更换当传递数据
+`topScorers` 时所调用模板函数：
 
-Helpers can take arguments, and they receive the current template data
-in `this`:
+辅助对象可以带参数，然后它们将收到在 `this` 函数中的当前模板的数据：
 
     // in a JavaScript file
     Template.players.leagueIs = function (league) {
@@ -516,22 +510,20 @@ in `this`:
     </{{! }}template>
 
 {{#note}}
-Handlebars note: `{{dstache}}#if leagueIs "junior"}}` is
-allowed because of a Meteor extension that allows nesting a helper
-in a block helper. (Both `if` and `leagueIs` are
-technically helpers, and stock Handlebars would not invoke
-`leagueIs` here.)
+关于 Handlebars 的提示： `{{dstache}}#if leagueIs "junior"}}` 是可以使用的，
+因为 Meteor 扩展模块允许在一个块辅助对象中嵌套一个辅助对象。（`if` 和
+`leagueIs` 都是严格意义上的辅助对象，Handlebars 不会在这里调用
+`leagueIs` 函数。
 {{/note}}
 
-Helpers can also be used to pass in constant data.
+辅助对象也可以用来传递常量数据。
 
     // Works fine with {{dstache}}#each sections}}
     Template.report.sections = ["Situation", "Complication", "Resolution"];
 
-Finally, you can use an `events` declaration on a template function to set up a
-table of event handlers. The format is documented at [Event
-Maps](#eventmaps). The `this` argument to the event handler will be
-the data context of the element that triggered the event.
+最后，你可以在一个模板函数中使用一个 `events` 声明来建立一个事件处理函数表，这个
+格式被记录在 [Event Maps](#eventmaps)。事件处理函数的 `this` 参数会成为触发事件
+元素中的数据上下文。
 
     <!-- myapp.html -->
     <template name="scores">
@@ -553,10 +545,8 @@ the data context of the element that triggered the event.
       }
     });
 
-Putting it all together, here's an example of how you can inject
-arbitrary data into your templates, and have them update automatically
-whenever that data changes. See [Live HTML](#livehtml) for further
-discussion.
+把它们整理在一起，这就是一个关于你如何在你的模板中注入任意数据、并在数据
+改变时自动更新它们的例子。更多讨论请看 [Live HTML](#livehtml)。
 
     <!-- in myapp.html -->
     <template name="forecast">
