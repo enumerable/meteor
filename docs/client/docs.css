@@ -33,7 +33,7 @@ a img {
 /** Basics **/
 
 body, button, input, select, textarea {
-    font-family: Helvetica, Hiragino Sans GB, Microsoft Yahei, WenQuanYi Micro Hei, sans-serif;
+    font-family: Helvetica, 'Hiragino Sans GB', 'Microsoft Yahei UI', 'Microsoft Yahei', 'WenQuanYi Micro Hei', sans-serif;
 }
 
 pre {
