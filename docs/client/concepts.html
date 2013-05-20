@@ -113,38 +113,26 @@ loaded in alphabetical order; and if there are multiple files named
 
 <h2 id="dataandsecurity">Data and security</h2>
 
-Meteor makes writing distributed client code as simple as talking to a
-local database.  It's a clean, simple, and secure approach that obviates
-the need to implement individual RPC endpoints, manually cache data on
-the client to avoid slow roundtrips to the server, and carefully
-orchestrate invalidation messages to every client as data changes.
+Meteor 使得编写分布的客户端代码如同访问本地数据库一样简单。
+这是一种干净，简单，安全的方式，无需实现独立的 PRC 端点，
+不必手动在客户端缓存数据以避免其在同服务期之间往返传输，也不需要在数据变化时小心谨慎地协调无效信息。
 
-In Meteor, the client and server share the same database API.  The same
-exact application code &mdash; like validators and computed properties &mdash; can
-often run in both places.  But while code running on the server has
-direct access to the database, code running on the client does *not*.
-This distinction is the basis for Meteor's data security model.
+在 Meteor 中，客户端与服务端共享相同的数据库 API 。相同的代码 &mdash; 诸如验证器( validators ) 以及
+计算所得属性 &mdash; 通常在两处均能运行。但是，运行在服务端的代码能够直接访问数据库，而客户端上的代码则*不能*。
+这个差异是 Meteor 数据安全模型的基础。
 
 {{#note}}
-By default, a new Meteor app includes the `autopublish` and `insecure`
-packages, which together mimic the effect of each client having full
-read/write access to the server's database.  These are useful
-prototyping tools, but typically not appropriate for production
-applications.  When you're ready, just remove the packages.
+默认地，一个新的 Meteor app 包含 `autopublish` 和 `insecure` 包，它们能够模拟每个客户端对服务端数据库拥有完全读写权限的效果。
+这是非常有用的原型工具，但通常不适用于实际产品中。当你准备发布时，请移除这两个包。
 {{/note}}
 
-Every Meteor client includes an in-memory database cache.  To manage the
-client cache, the server *publishes* sets of JSON documents, and the
-client *subscribes* to those sets.  As documents in a set change, the
-server patches each client's cache.
+每一个 Meteor 客户端都包含了一个内存数据库缓存。为了管理客户端缓存，
+服务端 *发布( publishes )* 若干 JSON 文档集( set )，而客户端 *订阅( subscribes )* 这些文档集。
+当某个集中的文档发生变化，服务端将会修订( patch )每个客户端的缓存。
 
-Today most Meteor apps use MongoDB as their database because it is the
-best supported, though support for other databases is coming in the
-future. The
-[`Meteor.Collection`](http://docs.meteor.com/#meteor_collection) class
-is used to declare Mongo collections and to manipulate them. Thanks to
-`minimongo`, Meteor's client-side Mongo emulator, `Meteor.Collection`
-can be used from both client and server code.
+由于支持最完善，如今大多数 Meteor app 使用 MongoDB 作为数据库，
+但在将来会陆续支持其它数据库。[`Meteor.Collection`](http://docs.meteor.com/#meteor_collection) 类用来声明和操作 Mongo collections 。
+归功于 `minimongo` , Meteor 的客户端 Mongo 模拟器，客户端和服务端代码均能使用 `Meteor.Collection` 。 
 
     // declare collections
     // this code should be included in both the client and the server
@@ -158,10 +146,8 @@ can be used from both client and server code.
     Messages.insert({text: "Hello world", room: myRooms[0]._id});
     Parties.insert({name: "Super Bowl Party"});
 
-Each document set is defined by a publish function on the server.  The
-publish function runs each time a new client subscribes to a document
-set.  The data in a document set can come from anywhere, but the common
-case is to publish a database query.
+每个文档集在服务端由一个发布函数( publish )定义。每当一个新的客户端订阅一个文档集时，发布函数就执行一次。
+文档集中的数据可以来自任何地方，但最常见情况是发布一次数据库查询。
 
     // server: publish all room documents
     Meteor.publish("all-rooms", function () {
@@ -181,15 +167,10 @@ case is to publish a database query.
                                  {owner: this.userId}]});
     });
 
-Publish functions can provide different results to each client.  In the
-last example, a logged in user can only see `Party` documents that
-are public, that the user owns, or that the user has been invited to.
+发布函数能够为每个客户端提供不同的结果。在最后一个例子中，一个已登录( logged-in )用户仅能看到公开的、用户自己的或被邀请的 `Party` 文档。   
 
-Once subscribed, the client uses its cache as a fast local database,
-dramatically simplifying client code.  Reads never require a costly
-round trip to the server.  And they're limited to the contents of the
-cache: a query for every document in a collection on a client will only
-return documents the server is publishing to that client.
+一旦订阅，客户端使用缓存就如同使用本地高速数据库，代码出奇的简洁。读取时从来不需要费时于同服务期间往返
+。当然这受限于缓存中的内容：客户端上请求集合( collection )中的文档时，仅有那些服务端发布给客户端的文档才会被返回。 
 
     // client: start a parties subscription
     Meteor.subscribe("parties");
@@ -197,16 +178,11 @@ return documents the server is publishing to that client.
     // client: return array of Parties this client can read
     return Parties.find().fetch(); // synchronous!
 
-Sophisticated clients can turn subscriptions on and off to control how
-much data is kept in the cache and manage network traffic.  When a
-subscription is turned off, all its documents are removed from the cache
-unless the same document is also provided by another active
-subscription.
+完备的客户端能够开启或关闭订阅，以便控制缓存中的数据量以及管理网络流量。
+当订阅关闭后，其所有文档都将被删除，除非另一个开启的订阅提供了相同的文档。
 
-When the client *changes* one or more documents, it sends a message to
-the server requesting the change.  The server checks the proposed change
-against a set of allow/deny rules you write as JavaScript functions.
-The server only accepts the change if all the rules pass.
+当客户端*变更*了一个或多个文档，它会发送给服务器发送一个请求变更的消息。
+服务端根据你写成 JavaScript 函数形式的允许/拒绝规则集，检查所提交的变更。仅有那些通过了所有规则的变更才会被服务端所接受。
 
     // server: don't allow client to insert a party
     Parties.allow({
@@ -219,73 +195,48 @@ The server only accepts the change if all the rules pass.
     var party = { ... };
     Parties.insert(party);
 
-If the server accepts the change, it applies the change to the database
-and automatically propagates the change to other clients subscribed to
-the affected documents.  If not, the update fails, the server's database
-remains untouched, and no other client sees the update.
+如果服务端接受了变更，它会将其应用到数据库中并自动的将变更传播给其它订阅了受影响文档的客户端。
+否则，更新操作失败，服务端的数据库不会受到影响，其它的客户端也不会进行更新。
 
-Meteor has a cute trick, though.  When a client issues a write to the
-server, it also updates its local cache immediately, without waiting for
-the server's response.  This means the screen will redraw right away.
-If the server accepted the update &mdash; what ought to happen most of the
-time in a properly behaving client &mdash; then the client got a jump on the
-change and didn't have to wait for the round trip to update its own
-screen.  If the server rejects the change, Meteor patches up the
-client's cache with the server's result.
+Meteor 有一个聪明的机制。当客户端向服务端发起一个写操作时，它会立即更新其本地缓存而不必等待服务端的响应。
+这意味着屏幕会立即重绘。如果服务端接受了更新 &mdash; 对于行为合理的客户端大多会如此 &mdash; 客户端便无需等待同服务器间的往返以更新自己的屏幕了。
+如果服务器拒绝了变更请求，Meteor 会根据服务端的结果修正客户端缓存。
 
-Putting it all together, these techniques accomplish latency
-compensation.  Clients hold a fresh copy of the data they need, and
-never need to wait for a roundtrip to the server. And when clients
-modify data, those modifications can run locally without waiting for the
-confirmation from the server, while still giving the server final say
-over the requested change.
+总而言之，这些技术实现了延迟补偿。客户端持有所需的最新数据，并且不必等待同服务端间的往返。
+当客户端修改数据时，这些修改能在本地立即执行而无需等待服务端的确认，同时，服务端对于变更请求仍然拥有最终定夺的权力。
 
-<h3 id="dataandsecurity-authentication">Authentication and user accounts</h3>
+<h3 id="dataandsecurity-authentication">认证与用户账户</h3>
 
-Meteor includes [Meteor Accounts](#accounts_api), a state-of-the-art
-authentication system. It features secure password login using the
-[Secure Remote Password
-protocol](http://en.wikipedia.org/wiki/Secure_Remote_Password_protocol),
-and integration with external services including Facebook, GitHub,
-Google, Meetup, Twitter, and Weibo. Meteor Accounts defines a
-[`Meteor.users`](#meteor_users) collection where developers can store
-application-specific user data.
+Meteor 包含了 [Meteor Accounts](#accounts_api)，一个最先进的认证系统。
+它的特色包括使用安全远程密码协议[Secure Remote Password protocol](http://en.wikipedia.org/wiki/Secure_Remote_Password_protocol)进行安全密码登录，
+与外部服务的整合包括 Facebook, GitHub, Google, Meetup, Twitter 以及 Weibo 。Meteor Accounts 定义了[`Meteor.users`](#meteor_users) 集合，
+开发者能在其中存储应用程序特有的用户数据。
 
-Meteor also includes pre-built forms for common tasks like login, signup,
-password change, and password reset emails. You can add [Accounts
-UI](#accountsui) to your app with just one line of code. The `accounts-ui` smart
-package even provides a configuration wizard that walks you through the steps to
-set up the external login services you're using in your app.
+Meteor 同时包含了预生成的表单用于常见的任务，例如登录、注册、更改密码和密码重置邮件。
+你仅需要一行代码就能在你的应用中添加 [Accounts UI](#accountsui) 。 
+`accounts-ui` 智能包甚至提供了配置向导引导你一步一步的在你的应用中搭建外部登录服务。
 
 {{#note}}
-The current release of Meteor supports MongoDB, the popular document
-database, and the examples in this section use the
-        [MongoDB API](http://www.mongodb.org/display/DOCS/Manual).  Future
-releases will include support for other databases.
+现今发布的 Meteor 支持 MongoDB，流行的文档数据库，本节中的例子来自
+        [MongoDB API](http://www.mongodb.org/display/DOCS/Manual).
+今后的版本将会包含对其它数据库的支持。
 {{/note}}
 
 
-<h3 id="dataandsecurity-validation">Input validation</h3>
+<h3 id="dataandsecurity-validation">输入验证</h3>
 
-Meteor allows your methods and publish functions to take arguments of any
-[JSON](http://json.org/) type. (In fact, Meteor's wire protocol supports
-[EJSON](#ejson), an extension of JSON which also supports other common types
-like dates and binary buffers.) JavaScript's dynamic typing means you don't need
-to declare precise types of every variable in your app, but it's usually helpful
-to ensure that the arguments that clients are passing to your methods and
-publish functions are of the type that you expect.
+Meteor 允许你的方法及发布函数接受任何
+[JSON](http://json.org/) 形式的参数。（实际上，Meteor 的写协议支持
+[EJSON](#ejson)，一个 JSON 的扩展，支持其它常见的类型如日期及二进制缓存）。
+JavaScript 的动态类型意味着你不必在应用中精确的声明每个变量的类型，但是你最好确保客户端传递给你的方法和发布函数的参数是你所预期的。
 
-Meteor provides a [lightweight library](#match) for checking that arguments and
-other values are the type you expect them to be. Simply start your functions
-with statements like `check(username, String)` or
-`check(office, {building: String, room: Number})`. The `check` call will
-throw an error if its argument is of an unexpected type.
+Meteor 提供了 [lightweight library](#match) 用于根据你的要求检查参数和其它变量的类型。
+仅需要在函数开始处使用表达式例如 `check(username, String)` 或
+`check(office, {building: String, room: Number})` 。如果参数不是预期的类型，`check` 调用将抛出一个错误。
 
-Meteor also provides an easy way to make sure that all of your methods
-and publish functions validate all of their arguments. Just run
-<code>meteor add [audit-argument-checks](#auditargumentchecks)</code> and any
-method or publish function which skips `check`ing any of its arguments will fail
-with an exception.
+Meteor 还提供了一种简单的方式来确保所有的方法和发布函数能够验证其参数。仅需要运行
+<code>meteor add [audit-argument-checks](#auditargumentchecks)</code> 此后所有跳过调用`check`检查其参数的方法
+或发布函数都将会产生异常从而导致失败。
 
 {{/better_markdown}}
 </template>
@@ -668,3 +619,4 @@ MongoDB 服务器，我们可以为你推荐我们朋友的 [MongoHQ](http://mon
 
 {{/better_markdown}}
 </template>
+Meteor 令书写分布式客户端如同与本地数据库通话一样简单。这是一种干净，简单，安全的方式，无需实现独立的 PRC 端点，无需手动在客户端缓存数据以避免与服务器间缓慢的往返时延,也不需要在数据变化时小心谨慎的协调无效信息。
