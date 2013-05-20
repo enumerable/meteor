@@ -1410,27 +1410,19 @@ interface](#accountsui)。
   其`reset`部分包含使用于[forgot password](#accounts_forgotpassword)的链接的tokens
   以及其包含用于在sessions中保持登录状态的tokens的`resume`部分。
 
-Like all [Meteor.Collection](#collections)s, you can access all
-documents on the server, but only those specifically published by the server are
-available on the client.
+类似于所以的[Meteor.Collection](#collections)s，你可以获取在服务端的所以的文档，
+但是只有被服务端特定公布了的文档才会在客户端中出现。
 
-By default, the current user's `username`, `emails` and `profile` are
-published to the client. You can publish additional fields for the
-current user with:
+通常情况下，正在使用应用的用户的`username`，`emails`和`profile`会公布在客户端上。你可以给用户公布额外的部分：
 
     Meteor.publish("userData", function () {
       return Meteor.users.find({_id: this.userId},
                                {fields: {'other': 1, 'things': 1}});
     });
 
-If the autopublish package is installed, information about all users
-on the system is published to all clients. This includes `username`,
-`profile`, and any fields in `services` that are meant to be public
-(eg `services.facebook.id`,
-`services.twitter.screenName`). Additionally, when using autopublish
-more information is published for the currently logged in user,
-including access tokens. This allows making API calls directly from
-the client for services that allow this.
+如果自动发布包（autopublish package）已被安装，在系统中有关所以用户的信息都会在所以客户端中公布。
+这会包括`username`，`profile`和任何公开的`services`部分（例如`services.facebook.id`，`services.twitter.screenName`）
+除此以外，当使用自动发布时，更多的信息会发布给已登录的用户，包含access tokens。这会允许直接从客户端中生成API响应。（仅限于许可此行为的服务）
 
 Users are by default allowed to specify their own `profile` field with
 [`Accounts.createUser`](#accounts_createuser) and modify it with
@@ -1456,12 +1448,9 @@ This function is provided by the `accounts-password` package. See the
 
 {{> api_box loginWithExternalService}}
 
-These functions initiate the login process with an external
-service (eg: Facebook, Google, etc), using OAuth. When called they open a new pop-up
-window that loads the provider's login page. Once the user has logged in
-with the provider, the pop-up window is closed and the Meteor client
-logs in to the Meteor server with the information provided by the external
-service.
+这项功能将使用OAuth初始一个外部服务的登录步骤（比如Facebook，Google等）。
+它将会弹出一个新的登录窗口，一旦用户登录进去，弹出的登录窗口将会关闭，
+Meteor的客户端将会带着外部应用提供的信息登入Meteor服务端。
 
 <a id="requestpermissions" name="requestpermissions" />
 
@@ -1482,12 +1471,9 @@ sites:
 - Meetup: <http://www.meetup.com/meetup_api/auth/#oauth2-scopes>
 - Twitter, Weibo: `requestPermissions` currently not supported
 
-External login services typically require registering and configuring
-your application before use. The easiest way to do this is with the
-[`accounts-ui` package](#accountsui) which presents a step-by-step guide
-to configuring each service. However, the data can be also be entered
-manually in the `Accounts.loginServiceConfiguration` collection. For
-example:
+外部登录服务在使用前都会要求注册和配置你的应用。
+最简单的方式是使用[`accounts-ui` package](#accountsui)这个步骤详细的指南来配置各个服务。
+但是，你也可以手动将数据输入`Accounts.loginServiceConfiguration`这个集合，例如：
 
     // first, remove configuration entry in case service is already configured
     Accounts.loginServiceConfiguration.remove({
@@ -1500,9 +1486,8 @@ example:
     });
 
 
-Each external service has its own login provider package and login function. For
-example, to support GitHub login, run `$ meteor add accounts-github` and use the
-`Meteor.loginWithGithub` function:
+每个外部的服务都有其自由的登录提供包和登录功能。例如，为了支持GitHub登录，
+需要运行`$ meteor add accounts-github`，然后使用`Meteor.loginWithGithub`这个功能：
 
     Meteor.loginWithGithub({
       requestPermissions: ['user', 'public_repo']
