@@ -437,8 +437,8 @@ attribute changes.
 
 <h2 id="templates">模板</h2>
 
-Meteor 的在线页面更新技术可以使你很轻松地使用你喜欢的 HTML 模板语言，
-像 Handlebars 和 Jade。只要如往常一样写你的模板，Meteor 会负责实时更新
+Meteor 的实时页面更新技术可以使你很轻松地使用你喜欢的 HTML 模板语言，
+像 Handlebars 和 Jade。只要如往常一样写你的模板，Meteor 会负责即时更新
 它。
 
 要使用这个特性，在你的项目中使用扩展名 `.html` 创建一个文件。在文件中，
@@ -491,8 +491,8 @@ Meteor 会预编译模板，运送它到客户端，然后使它可以在全局 
       return Users.find({score: {$gt: 100}}, {sort: {score: -1}});
     };
 
-我们可以通过定义函数 `Template.players`，来更换当传递数据
-`topScorers` 时所调用模板函数：
+在这个实例中，数据来自数据库查询。一旦数据库游标传递给 `#each`，就会
+高效地连接每一台机器，添加和移动 DOM 节点作为新的结果输入查询中。
 
 辅助对象可以带参数，然后它们将收到在 `this` 函数中的当前模板的数据：
 
@@ -516,7 +516,7 @@ Meteor 会预编译模板，运送它到客户端，然后使它可以在全局 
 {{#note}}
 关于 Handlebars 的提示： `{{dstache}}#if leagueIs "junior"}}` 是可以使用的，
 因为 Meteor 扩展模块允许在一个块辅助对象中嵌套一个辅助对象。（`if` 和
-`leagueIs` 都是严格意义上的辅助对象，Handlebars 不会在这里调用
+`leagueIs` 都是严格意义上的辅助对象，标准的 Handlebars 模板不会在这里调用
 `leagueIs` 函数。
 {{/note}}
 
