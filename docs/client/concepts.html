@@ -132,7 +132,7 @@ Meteor 使得编写分布的客户端代码如同访问本地数据库一样简�
 
 由于支持最完善，如今大多数 Meteor app 使用 MongoDB 作为数据库，
 但在将来会陆续支持其它数据库。[`Meteor.Collection`](http://docs.meteor.com/#meteor_collection) 类用来声明和操作 Mongo collections 。
-归功于 `minimongo` , Meteor 的客户端 Mongo 模拟器，客户端和服务端代码均能使用 `Meteor.Collection` 。 
+归功于 `minimongo` , Meteor 的客户端 Mongo 模拟器，客户端和服务端代码均能使用 `Meteor.Collection` 。
 
     // declare collections
     // this code should be included in both the client and the server
@@ -167,10 +167,10 @@ Meteor 使得编写分布的客户端代码如同访问本地数据库一样简�
                                  {owner: this.userId}]});
     });
 
-发布函数能够为每个客户端提供不同的结果。在最后一个例子中，一个已登录( logged-in )用户仅能看到公开的、用户自己的或被邀请的 `Party` 文档。   
+发布函数能够为每个客户端提供不同的结果。在最后一个例子中，一个已登录( logged-in )用户仅能看到公开的、用户自己的或被邀请的 `Party` 文档。
 
 一旦订阅，客户端使用缓存就如同使用本地高速数据库，代码出奇的简洁。读取时从来不需要费时于同服务期间往返
-。当然这受限于缓存中的内容：客户端上请求集合( collection )中的文档时，仅有那些服务端发布给客户端的文档才会被返回。 
+。当然这受限于缓存中的内容：客户端上请求集合( collection )中的文档时，仅有那些服务端发布给客户端的文档才会被返回。
 
     // client: start a parties subscription
     Meteor.subscribe("parties");
@@ -213,7 +213,7 @@ Meteor 包含了 [Meteor Accounts](#accounts_api)，一个最先进的认证系�
 开发者能在其中存储应用程序特有的用户数据。
 
 Meteor 同时包含了预生成的表单用于常见的任务，例如登录、注册、更改密码和密码重置邮件。
-你仅需要一行代码就能在你的应用中添加 [Accounts UI](#accountsui) 。 
+你仅需要一行代码就能在你的应用中添加 [Accounts UI](#accountsui) 。
 `accounts-ui` 智能包甚至提供了配置向导引导你一步一步的在你的应用中搭建外部登录服务。
 
 {{#note}}
@@ -572,4 +572,3 @@ MongoDB 服务器，我们可以为你推荐我们朋友的 [MongoHQ](http://mon
 
 {{/better_markdown}}
 </template>
-Meteor 令书写分布式客户端如同与本地数据库通话一样简单。这是一种干净，简单，安全的方式，无需实现独立的 PRC 端点，无需手动在客户端缓存数据以避免与服务器间缓慢的往返时延,也不需要在数据变化时小心谨慎的协调无效信息。
