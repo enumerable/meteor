@@ -1346,40 +1346,31 @@ you need to use the `underscore` package and write
 
 
 
-<h2 id="accounts_api"><span>Accounts</span></h2>
+<h2 id="accounts_api"><span>账户</span></h2>
 
-The Meteor Accounts system builds on top of the `userId` support in
-[`publish`](#publish_userId) and [`methods`](#method_userId). The core
-packages add the concept of user documents stored in the database, and
-additional packages add [secure password
-authentication](#accounts_passwords), [integration with third party
-login services](#meteor_loginwithexternalservice), and a [pre-built user
-interface](#accountsui).
+Meteor的账户系统是在基于提供[`publish`](#publish_userId)和[`methods`](#method_userId)的`userId`所建设的。
+核心的包含有存储在数据库的用户档案和额外的包：包含[secure password
+authentication](#accounts_passwords)，[integration with third party
+login services](#meteor_loginwithexternalservice)和一个[pre-built user
+interface](#accountsui)。
 
-The basic Accounts system is in the `accounts-base` package, but
-applications typically include this automatically by adding one of the
-login provider packages: `accounts-password`, `accounts-facebook`,
-`accounts-github`, `accounts-google`, `accounts-meetup`,
-`accounts-twitter`, or `accounts-weibo`.
+基本的账户系统是在`accounts-base`这个包里，正常情况下如果应用使用了`accounts-password`，`accounts-facebook`，
+`accounts-github`，`accounts-google`，`accounts-meetup`，`accounts-twitter`或`accounts-weibo`中的其中一个提供登录的包，
+`accounts-base`都会被自动包含在其中。
 
 
 {{> api_box user}}
 
-Retrieves the user record for the current user from
-the [`Meteor.users`](#meteor_users) collection.
+从[`Meteor.users`](#meteor_users)这个集合中获得正在使用该应用的用户的记录。
 
-On the client, this will be the subset of the fields in the document that
-are published from the server (other fields won't be available on the
-client). By default the server publishes `username`, `emails`, and
-`profile`. See [`Meteor.users`](#meteor_users) for more on
-the fields used in user documents.
+在客户端中，这将会成是从服务器中发布的文档的一部分的子集（文档的其他部分不会在客户端中出现）。
+通常服务器会公布`username`，`emails`和`profile`。可以在[`Meteor.users`](#meteor_users)中看到用户档案的更多部分。
 
 {{> api_box userId}}
 
 {{> api_box users}}
 
-This collection contains one document per registered user. Here's an example
-user document:
+这个集合包含了每个注册用户的档案。这是一个用户档案的例子：
 
     {
       _id: "bbca5d6a-2156-41c4-89da-0329e8c99a4f",  // Meteor.userId()
@@ -1408,23 +1399,16 @@ user document:
       }
     }
 
-A user document can contain any data you want to store about a user. Meteor
-treats the following fields specially:
+一个用户档案可以包含任何你想存储的有关用户的数据。Meteor将对这些数据进行特殊的定义：
 
-- `username`: a unique String identifying the user.
-- `emails`: an Array of Objects with keys `address` and `verified`;
-  an email address may belong to at most one user. `verified` is
-  a Boolean which is true if the user has [verified the
-  address](#accounts_verifyemail) with a token sent over email.
-- `createdAt`: a numeric timestamp (milliseconds since January 1 1970)
-   of the time the user document was created.
-- `profile`: an Object which (by default) the user can create
-  and update with any data.
-- `services`: an Object containing data used by particular
-  login services. For example, its `reset` field contains
-  tokens used by [forgot password](#accounts_forgotpassword) links,
-  and its `resume` field contains tokens used to keep you
-  logged in between sessions.
+- `username`：一个独一无二的用来区分用户的字符串。
+- `emails`: 一个包含很多含有`address`和`verified`属性的对象的数列；1个email地址最多只能属于一个用户。
+  `verified`是一个Boolean，如果[email地址已被验证](#accounts_verifyemail)，它的值将为True。
+- `createdAt`: 用户文档的建立时间，为数字的UNIX时间 (现在到1970年1月1日的毫秒数)
+- `profile`: 一个用户通常可以新建或更新任何数据的对象。
+- `services`: 一个包含被特定的登录服务使用的数据的对象，
+  其`reset`部分包含使用于[forgot password](#accounts_forgotpassword)的链接的tokens
+  以及其包含用于在sessions中保持登录状态的tokens的`resume`部分。
 
 Like all [Meteor.Collection](#collections)s, you can access all
 documents on the server, but only those specifically published by the server are
