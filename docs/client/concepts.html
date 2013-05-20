@@ -583,46 +583,26 @@ discussion.
 <template name="packages_concept">
 {{#better_markdown}}
 
-  <h2 id="smartpackages">Smart packages</h2>
+  <h2 id="smartpackages">智能的包</h2>
 
-Meteor has an unusually powerful package system. All of the
-functionality you've read about so far is implemented as standard
-Meteor packages.
+Meteor 有着异常强大的包系统，你读到的所有功能都已经被实现为标准的 Meteor 包。
 
-Meteor packages are intelligent: the packages are themselves
-JavaScript programs. They can inject code into the client or the
-server, or hook new functions into the bundler, so they can extend the
-Meteor environment in arbitrary ways. Some examples of packages are:
+Meteor 的包是智能的：包本身就是 JavaScript 程序。它们可以注入到客户端和服务端，或者在 bundler 中 hook 一个新的函数，所以它们可以用任意方式扩展 Meteor 环境。一些包的例子：
 
-* The [coffeescript](#coffeescript) package extends the
-  bundler, automatically compiling any `.coffee` files in
-  your tree.  Once added, you can write your application in CoffeeScript
-  instead of JavaScript.
+* [coffeescript](#coffeescript) 的包扩展了 bundler，自动编译目录中的 `.coffee` 文件。添加后，你可以用 CoffeeScript 代替 JavaScript 开发你的应用。
 
-* The [jQuery](#jquery) and [Backbone](#backbone) packages are examples of using
-  Meteor to prepackage client JavaScript libraries. You could get
-  the same result by copying the JavaScript files into your tree, but
-  it's faster to add a package.
+* [jQuery](#jquery) 和 [Backbone](#backbone) 的包是 Meteor 客户端预装的 JavaScript 库。你可以通过把 JavaScript 文件复制到目录中得到同样的结果，但添加包是更快的方式。
 
-* The [underscore](#underscore) package extends both the
-  client and server environments.
+* [underscore](#underscore) 的包扩展了客户端和服务端环境。
 
-Many of the core Meteor features,
-including Minimongo, the Session object, and reactive Handlebars
-templates, are implemented as internal packages automatically
-included with every Meteor application.
+在很多 Meteor 的核心特性被自动作为内置包在每个 Meteor 环境中加载（包含了 Minimongo、Session 对象和反应的 Handlebars 模板）。
 
-You can see a list of available packages
-with [`meteor list`](#meteorlist), add packages to your project
-with [`meteor add`](#meteoradd), and remove them
-with [`meteor remove`](#meteorremove).
+你可以在这里 [`meteor list`](#meteorlist) 看到 Meteor 可用包的列表，通过 [`meteor add`](#meteoradd) 添加包到你的项目里，通过 [`meteor remove`](#meteorremove) 移除它们。
 
-See the [Package List](#packages) section for a description
-of the existing packages.
+在 [Package List](#packages) 这里来看现有包的描述。
 
 {{#warning}}
-The package API is rapidly changing and isn't documented, so you can't
-make your own packages just yet. Coming soon.
+包的 API 是快速变化的并且不会被记录，所以你现在不能制作自己的包。很快就可以。
 {{/warning}}
 
 {{/better_markdown}}
