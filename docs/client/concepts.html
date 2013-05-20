@@ -360,15 +360,11 @@ You can use it yourself to implement new reactive data sources.
 <template name="livehtml">
 {{#better_markdown}}
 
-<h2 id="livehtml">Live HTML</h2>
+<h2 id="livehtml">实时 HTML</h2>
 
-HTML templating is central to web applications. With Meteor's live
-page update technology, you can render your HTML _reactively_, meaning
-that it will update automatically to track changes in the data used to
-generate it.
+HTML 模板是 Web 应用程序的核心。使用 Meteor 实时页面更新技术，你可以响应式地渲染你的 HTML，这意味着它将根据数据的改变而自动更新。
 
-This optional feature works with any HTML templating library, or even
-with HTML you generate manually from JavaScript. Here's an example:
+这个可选择的特性可以应用于任何 HTML 模板库，甚至你从 JavaScript 手动生成的 HTML 也可以。这里有个例子：
 
     var fragment = Meteor.render(
       function () {
@@ -377,53 +373,20 @@ with HTML you generate manually from JavaScript. Here's an example:
       });
     document.body.appendChild(fragment);
 
-    Session.set("name", "Bob"); // page updates automatically!
+    Session.set("name", "Bob"); // 页面会自动更新！
 
-[`Meteor.render`](#meteor_render) takes a rendering function, that is, a
-function that returns some HTML as a string. It returns an auto-updating
-`DocumentFragment`. When there is a change to data used by the rendering
-function, it is re-run. The DOM nodes in the `DocumentFragment` then
-update themselves in-place, no matter where they were inserted on the
-page. It's completely automatic. [`Meteor.render`](#meteor_render) uses
-a [reactive computation](#reactivity) to discover what data is used by the
-rendering function.
+[`Meteor.render`](#meteor_render) 接收一个渲染函数，这个函数会以字符串形式返回一些 HTML。而 [`Meteor.render`](#meteor_render) 返回一个自动更新的 `DocumentFragment`，当渲染函数使用的数据发生改变时重新运行。随后 `DocumentFragment` 中的 DOM 节点就会自动更新，无论这些节点在页面上的什么位置。整个过程是完全自动的。[`Meteor.render`](#meteor_render) 使用 [reactive computation](#reactivity) 来发现渲染函数使用的是哪些数据。
 
-Most of the time, though, you won't call these functions directly
-&mdash; you'll just use your favorite templating package, such as
-Handlebars or Jade. The `render` and `renderList` functions are intended
-for people that are implementing new templating systems.
+但大多数时候，你不用直接调用这些函数——你只需要使用你最喜欢模板库，比如 Handlebars 或者 Jade。`render` 和 `renderList` 函数是为了那些要实现新模板系统的人而准备的。
 
-Meteor normally batches up any needed updates and executes them only
-when your code isn't running. That way, you can be sure that the DOM
-won't change out from underneath you. Sometimes you want the opposite
-behavior. For example, if you've just inserted a record in the
-database, you might want to force the DOM to update so you can find
-the new elements using a library like jQuery. In that case, call
-[`Deps.flush`](#deps_flush) to bring the DOM up to date
-immediately.
+Meteor 一般只在你的代码不运行时批量执行所有必要的更新。这样，可以保证 DOM 不会背着你发生变化。不过有时候你会需要相反的行为，比如：如果你刚刚在数据库中插入一条记录，也许想强制 DOM 更新，以便使用 jQuery 这样的库来查找新的元素。这种情况下，可以使用 [`Deps.flush`](#deps_flush) 让 DOM 更新。
 
-When live-updating DOM elements are taken off the screen, they are automatically
-cleaned up &mdash; their callbacks are torn down, any associated database
-queries are stopped, and they stop updating. For this reason, you never have to
-worry about the [zombie
-templates](http://lostechies.com/derickbailey/2011/09/15/zombies-run-managing-page-transitions-in-backbone-apps/)
-that plague hand-written update logic. To protect your elements from cleanup,
-just make sure that they are on-screen before your code returns to the event loop,
-or before any call you make to [`Deps.flush`](#deps_flush).
+当从屏幕上拿掉实时更新的 DOM 元素时，它们会被自动清除——它们的回调函数会被销毁，任何相关的数据库操作会停止，DOM 元素也会停止更新。因为这样的原因，你无需担心 [zombie
+templates](http://lostechies.com/derickbailey/2011/09/15/zombies-run-managing-page-transitions-in-backbone-apps/) 给手写的更新逻辑造成灾难。为了保护你的元素不被清除，只需保证在代码返回给事件循环前，或者在你调用 [`Deps.flush`](#deps_flush) 前，它们还在屏幕上即可。
 
-Another thorny problem in hand-written applications is element
-preservation. Suppose the user is typing text into an `<input>`
-element, and then the area of the page that includes that element is
-redrawn. The user could be in for a bumpy ride, as the focus, the
-cursor position, the partially entered text, and the accented
-character input state will be lost when the `<input>` is recreated.
+手写应用程序的另一个棘手的问题是元素保留。假设用户正在一个 `<input>` 元素中打字，然后页面中包含这个元素的区域重绘了。这时候用户就麻烦了，在 `<input>` 重建时焦点、光标位置、已经输入的部分文字和带重音符号的输入状态都会丢失。
 
-This is another problem that Meteor solves for you. You can specify
-elements to preserve when templates are re-rendered with the
-[`preserve`](#template_preserve) directive on the template. Meteor will
-preserve these elements even when their enclosing template is
-rerendered, but will still update their children and copy over any
-attribute changes.
+这是 Meteor 为你解决的又一个问题。当有 [`preserve`](#template_preserve) 指令的模板被重新渲染的时候，你可以指定保留一部分元素。这样，即使包含它们的模板被重新渲染了，Meteor 也将保留这些元素，不过仍然会更新它们的子元素并复制所有的属性变化。
 
 {{/better_markdown}}
 </template>
