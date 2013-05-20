@@ -639,63 +639,51 @@ make your own packages just yet. Coming soon.
 <template name="deploying">
 {{#better_markdown}}
 
-<h2 id="deploying">Deploying</h2>
+<h2 id="deploying">部署</h2>
 
-Meteor is a full application server.  We include everything you need
-to deploy your application on the internet: you just provide the JavaScript,
-HTML, and CSS.
+Meteor 是一个完整的应用程序服务器。我们在程序中包含了把程序部署在网络
+上所需要的一切：你只要准备 JavaScript、HTML 和 CSS 就够了。
 
-<h3 class="nosection">Running on Meteor's infrastructure</h3>
+<h3 class="nosection">运行 Meteor 的基础结构</h3>
 
-The easiest way to deploy your application is to use `meteor
-deploy`.  We provide it because it's what, personally, we've always
-wanted: an easy way to take an app idea, flesh it out over a weekend,
-and put it out there for the world to use, with nothing getting in the
-way of creativity.
+部署程序最容易的方法是使用 `meteor deploy`。我们提供它是因为我们总是想要：
+一种可以实现程序创意的而又不妨碍创造力、能在一个周末内赋予其血肉、然后
+把它放在那里供全世界使用的简单方法。
 
     $ meteor deploy myapp.meteor.com
 
-Your application is now available at myapp.meteor.com.  If
-this is the first time deploying to this hostname, Meteor creates a
-fresh empty database for your application.  If you want to deploy an
-update, Meteor will preserve the existing data and just refresh the
-code.
+你的程序现在可以使用 myapp.meteor.com。如果你是第一次部署程序到这个
+主机名，Meteor 会为你的程序创建一个新的空数据库。如果你想更新程序，
+Meteor 会保存现有数据并且刷新代码。
 
-You can also deploy to your own domain.  Just set up the hostname you
-want to use as a CNAME to `origin.meteor.com`,
-then deploy to that name.
+你也可以在自己的域名上部署程序。只要把你想要使用的主机名做 CNAME 记录
+指向 `origin.meteor.com`，然后部署到上面就可以了。
 
     $ meteor deploy www.myapp.com
 
-We provide this as a free service so you can try Meteor.  It is also
-helpful for quickly putting up internal betas, demos, and so on.
+你可以在我们提供的免费服务上尝试 Meteor。它也可以帮你很快地建造内部
+测试程序、演示程序等等。
 
-<h3 class="nosection">Running on your own infrastructure</h3>
+<h3 class="nosection">运行你自己的基础结构</h3>
 
-You can also run your application on your own infrastructure, or any
-other hosting provider like Heroku.
+你也可以在你自己的基础结构上运行程序，或者像 Heroku 等其他托管服务商。
 
-To get started, run
+想要马上开始，运行
 
     $ meteor bundle myapp.tgz
 
-This command will generate a fully-contained Node.js application in
-the form of a tarball.  To run this application, you need to provide
-Node.js 0.8 and a MongoDB server.  You can then run the application by
-invoking node, specifying the HTTP port for the application to listen
-on, and the MongoDB endpoint.  If you don't already have a MongoDB
-server, we can recommend our friends at [MongoHQ](http://mongohq.com).
+这个命令会以 tarball 档案的形式创建一个完全独立的 Node.js 程序。想要运行
+这个程序，你需要安装 Node.js 0.8 和一个 MongoDB 服务器。然后你可以通过
+调用 Node.js、指定程序监听的端口和 MongoDB 的路径来运行这个程序。如果你没有
+MongoDB 服务器，我们可以为你推荐我们朋友的 [MongoHQ](http://mongohq.com)。
 
     $ PORT=3000 MONGO_URL=mongodb://localhost:27017/myapp node bundle/main.js
 
-Other packages may require other environment variables (for example, the `email`
-package requires a `MAIL_URL` environment variable).
+其他包可能需要其他环境变量（例如 `email` 包需要 `MAIL_URL` 环境变量）。
 
 {{#warning}}
-For now, bundles will only run on the platform that the bundle was
-created on.  To run on a different platform, you'll need to rebuild
-the native packages included in the bundle.  To do that, make sure you
-have `npm` available, and run the following:
+目前，打包好的程序只能运行在创建它的平台上。想要运行在另一个平台上，你需要
+重新打包本地包。先确认你是否有 `npm`，然后运行：
 
     $ cd bundle/server/node_modules
     $ rm -r fibers
