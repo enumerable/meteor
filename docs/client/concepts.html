@@ -360,15 +360,11 @@ You can use it yourself to implement new reactive data sources.
 <template name="livehtml">
 {{#better_markdown}}
 
-<h2 id="livehtml">Live HTML</h2>
+<h2 id="livehtml">实时 HTML</h2>
 
-HTML templating is central to web applications. With Meteor's live
-page update technology, you can render your HTML _reactively_, meaning
-that it will update automatically to track changes in the data used to
-generate it.
+HTML 模板是 Web 应用程序的核心。使用 Meteor 实时页面更新技术，你可以响应式地渲染你的 HTML，这意味着它将根据数据的改变而自动更新。
 
-This optional feature works with any HTML templating library, or even
-with HTML you generate manually from JavaScript. Here's an example:
+这个可选择的特性可以应用于任何 HTML 模板库，甚至你从 JavaScript 手动生成的 HTML 也可以。这里有个例子：
 
     var fragment = Meteor.render(
       function () {
@@ -377,53 +373,20 @@ with HTML you generate manually from JavaScript. Here's an example:
       });
     document.body.appendChild(fragment);
 
-    Session.set("name", "Bob"); // page updates automatically!
+    Session.set("name", "Bob"); // 页面会自动更新！
 
-[`Meteor.render`](#meteor_render) takes a rendering function, that is, a
-function that returns some HTML as a string. It returns an auto-updating
-`DocumentFragment`. When there is a change to data used by the rendering
-function, it is re-run. The DOM nodes in the `DocumentFragment` then
-update themselves in-place, no matter where they were inserted on the
-page. It's completely automatic. [`Meteor.render`](#meteor_render) uses
-a [reactive computation](#reactivity) to discover what data is used by the
-rendering function.
+[`Meteor.render`](#meteor_render) 接收一个渲染函数，这个函数会以字符串形式返回一些 HTML。而 [`Meteor.render`](#meteor_render) 返回一个自动更新的 `DocumentFragment`，当渲染函数使用的数据发生改变时重新运行。随后 `DocumentFragment` 中的 DOM 节点就会自动更新，无论这些节点在页面上的什么位置。整个过程是完全自动的。[`Meteor.render`](#meteor_render) 使用 [reactive computation](#reactivity) 来发现渲染函数使用的是哪些数据。
 
-Most of the time, though, you won't call these functions directly
-&mdash; you'll just use your favorite templating package, such as
-Handlebars or Jade. The `render` and `renderList` functions are intended
-for people that are implementing new templating systems.
+但大多数时候，你不用直接调用这些函数——你只需要使用你最喜欢模板库，比如 Handlebars 或者 Jade。`render` 和 `renderList` 函数是为了那些要实现新模板系统的人而准备的。
 
-Meteor normally batches up any needed updates and executes them only
-when your code isn't running. That way, you can be sure that the DOM
-won't change out from underneath you. Sometimes you want the opposite
-behavior. For example, if you've just inserted a record in the
-database, you might want to force the DOM to update so you can find
-the new elements using a library like jQuery. In that case, call
-[`Deps.flush`](#deps_flush) to bring the DOM up to date
-immediately.
+Meteor 一般只在你的代码不运行时批量执行所有必要的更新。这样，可以保证 DOM 不会背着你发生变化。不过有时候你会需要相反的行为，比如：如果你刚刚在数据库中插入一条记录，也许想强制 DOM 更新，以便使用 jQuery 这样的库来查找新的元素。这种情况下，可以使用 [`Deps.flush`](#deps_flush) 让 DOM 更新。
 
-When live-updating DOM elements are taken off the screen, they are automatically
-cleaned up &mdash; their callbacks are torn down, any associated database
-queries are stopped, and they stop updating. For this reason, you never have to
-worry about the [zombie
-templates](http://lostechies.com/derickbailey/2011/09/15/zombies-run-managing-page-transitions-in-backbone-apps/)
-that plague hand-written update logic. To protect your elements from cleanup,
-just make sure that they are on-screen before your code returns to the event loop,
-or before any call you make to [`Deps.flush`](#deps_flush).
+当从屏幕上拿掉实时更新的 DOM 元素时，它们会被自动清除——它们的回调函数会被销毁，任何相关的数据库操作会停止，DOM 元素也会停止更新。因为这样的原因，你无需担心 [zombie
+templates](http://lostechies.com/derickbailey/2011/09/15/zombies-run-managing-page-transitions-in-backbone-apps/) 给手写的更新逻辑造成灾难。为了保护你的元素不被清除，只需保证在代码返回给事件循环前，或者在你调用 [`Deps.flush`](#deps_flush) 前，它们还在屏幕上即可。
 
-Another thorny problem in hand-written applications is element
-preservation. Suppose the user is typing text into an `<input>`
-element, and then the area of the page that includes that element is
-redrawn. The user could be in for a bumpy ride, as the focus, the
-cursor position, the partially entered text, and the accented
-character input state will be lost when the `<input>` is recreated.
+手写应用程序的另一个棘手的问题是元素保留。假设用户正在一个 `<input>` 元素中打字，然后页面中包含这个元素的区域重绘了。这时候用户就麻烦了，在 `<input>` 重建时焦点、光标位置、已经输入的部分文字和带重音符号的输入状态都会丢失。
 
-This is another problem that Meteor solves for you. You can specify
-elements to preserve when templates are re-rendered with the
-[`preserve`](#template_preserve) directive on the template. Meteor will
-preserve these elements even when their enclosing template is
-rerendered, but will still update their children and copy over any
-attribute changes.
+这是 Meteor 为你解决的又一个问题。当有 [`preserve`](#template_preserve) 指令的模板被重新渲染的时候，你可以指定保留一部分元素。这样，即使包含它们的模板被重新渲染了，Meteor 也将保留这些元素，不过仍然会更新它们的子元素并复制所有的属性变化。
 
 {{/better_markdown}}
 </template>
@@ -431,29 +394,26 @@ attribute changes.
 <template name="templates">
 {{#better_markdown}}
 
-<h2 id="templates">Templates</h2>
+<h2 id="templates">模板</h2>
 
-Meteor makes it easy to use your favorite HTML templating language,
-such as Handlebars or Jade, along with Meteor's live page update
-technology. Just write your template as you normally would, and Meteor
-will take care of making it update in realtime.
+Meteor 的实时页面更新技术可以使你很轻松地使用你喜欢的 HTML 模板语言，
+像 Handlebars 和 Jade。只要如往常一样写你的模板，Meteor 会负责即时更新
+它。
 
-To use this feature, create a file in your project with the `.html`
-extension. In the file, make a `<template>` tag and give it a
-`name` attribute. Put the template contents inside the tag. Meteor
-will precompile the template, ship it down to the client, and make it
-available as a function on the global `Template` object.
+要使用这个特性，在你的项目中使用扩展名 `.html` 创建一个文件。在文件中，
+构造一个 `<template>` 标签并给它一个 `name` 属性。在标签中放置模板内容。
+Meteor 会预编译模板，运送它到客户端，然后使它可以在全局 `Template`
+对象中作为一个有效的函数。
+
 
 {{#note}}
-Today, the only templating system that has been packaged for Meteor is
-Handlebars. Let us know what templating systems you'd like to use with
-Meteor. Meanwhile, see the [Handlebars
-documentation](http://www.handlebarsjs.com/) and [Meteor Handlebars
-extensions](https://github.com/meteor/meteor/wiki/Handlebars).
+现在，在 Meteor 中被打包的模板只有 Handlebars。请让我们知道：在 Meteor 中，
+你想使用什么模板系统。同时，请看 [Handlebars documentation](http://www.handlebarsjs.com/)
+和 [Meteor Handlebars extensions](https://github.com/meteor/meteor/wiki/Handlebars)
 {{/note}}
 
-A template with a `name` of `hello` is rendered by calling the
-function `Template.hello`, passing any data for the template:
+一个 `name` 属性为 `hello` 的模板会调用函数 `Template.hello` 来渲染，
+然后传递模板中的所有数据：
 
     <!-- in myapp.html -->
     <template name="hello">
@@ -464,18 +424,18 @@ function `Template.hello`, passing any data for the template:
     > Template.hello({first: "Alyssa", last: "Hacker"});
      => "<div class="greeting">Hello there, Alyssa Hacker!</div>"
 
-This returns a string. To use the template along with the [`Live
-HTML`](#livehtml) system, and get DOM elements that update
-automatically in place, use [`Meteor.render`](#meteor_render):
+这会返回一个字符串。要想把模板与 [`Live HTML`](#livehtml) 系统一同
+使用，并在适当位置自动更新获取到的 DOM 元素，请用
+[`Meteor.render`](#meteor_render)：
 
     Meteor.render(function () {
       return Template.hello({first: "Alyssa", last: "Hacker"});
     })
       => automatically updating DOM elements
 
-The easiest way to get data into templates is by defining helper
-functions in JavaScript. Just add the helper functions directly on the
-`Template.[template name]` object. For example, in this template:
+获取模板中的数据的最简单的方法是在 JavaScript 中定义辅助函数。只要在
+`Template.[template name]` 对象中直接加入辅助函数就可以了。例如，在这个
+模板中：
 
     <template name="players">
       {{dstache}}#each topScorers}}
@@ -483,20 +443,17 @@ functions in JavaScript. Just add the helper functions directly on the
       {{dstache}}/each}}
     </{{! }}template>
 
-instead of passing in `topScorers` as data when we call the
-template function, we could define a function on `Template.players`:
+我们可以通过定义函数 `Template.players`，来更换当传递数据
+`topScorers` 时所调用模板函数：
 
     Template.players.topScorers = function () {
       return Users.find({score: {$gt: 100}}, {sort: {score: -1}});
     };
 
-In this case, the data is coming from a database query. When the
-database cursor is passed to `#each`, it will wire up all of the
-machinery to efficiently add and move DOM nodes as new results enter
-the query.
+在这个实例中，数据来自数据库查询。一旦数据库游标传递给 `#each`，就会
+高效地连接每一台机器，添加和移动 DOM 节点作为新的结果输入查询中。
 
-Helpers can take arguments, and they receive the current template data
-in `this`:
+辅助对象可以带参数，然后它们将收到在 `this` 函数中的当前模板的数据：
 
     // in a JavaScript file
     Template.players.leagueIs = function (league) {
@@ -516,22 +473,20 @@ in `this`:
     </{{! }}template>
 
 {{#note}}
-Handlebars note: `{{dstache}}#if leagueIs "junior"}}` is
-allowed because of a Meteor extension that allows nesting a helper
-in a block helper. (Both `if` and `leagueIs` are
-technically helpers, and stock Handlebars would not invoke
-`leagueIs` here.)
+关于 Handlebars 的提示： `{{dstache}}#if leagueIs "junior"}}` 是可以使用的，
+因为 Meteor 扩展模块允许在一个块辅助对象中嵌套一个辅助对象。（`if` 和
+`leagueIs` 都是严格意义上的辅助对象，标准的 Handlebars 模板不会在这里调用
+`leagueIs` 函数。
 {{/note}}
 
-Helpers can also be used to pass in constant data.
+辅助对象也可以用来传递常量数据。
 
     // Works fine with {{dstache}}#each sections}}
     Template.report.sections = ["Situation", "Complication", "Resolution"];
 
-Finally, you can use an `events` declaration on a template function to set up a
-table of event handlers. The format is documented at [Event
-Maps](#eventmaps). The `this` argument to the event handler will be
-the data context of the element that triggered the event.
+最后，你可以在一个模板函数中使用一个 `events` 声明来建立一个事件处理函数表，这个
+格式被记录在 [Event Maps](#eventmaps)。事件处理函数的 `this` 参数会成为触发事件
+元素中的数据上下文。
 
     <!-- myapp.html -->
     <template name="scores">
@@ -553,10 +508,8 @@ the data context of the element that triggered the event.
       }
     });
 
-Putting it all together, here's an example of how you can inject
-arbitrary data into your templates, and have them update automatically
-whenever that data changes. See [Live HTML](#livehtml) for further
-discussion.
+把它们整理在一起，这就是一个关于你如何在你的模板中注入任意数据、并在数据
+改变时自动更新它们的例子。更多讨论请看 [Live HTML](#livehtml)。
 
     <!-- in myapp.html -->
     <template name="forecast">
