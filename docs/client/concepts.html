@@ -293,45 +293,36 @@ with an exception.
 <template name="reactivity">
 {{#better_markdown}}
 
-<h2 id="reactivity">Reactivity</h2>
+<h2 id="reactivity">响应式</h2>
 
-Meteor embraces the concept of [reactive
-programming](http://en.wikipedia.org/wiki/Reactive_programming). This means that
-you can write your code in a simple imperative style, and the result will be
-automatically recalculated whenever data changes that your code depends on.
+Meteor 信奉[响应式编程](http://en.wikipedia.org/wiki/Reactive_programming)的理念。
+这意味着，你可以用简单的命令式风格写代码，当你的代码所依赖的数据发生变化时，结果
+会自动重新计算。
 
     Deps.autorun(function () {
       Meteor.subscribe("messages", Session.get("currentRoomId"));
     });
 
-This example (taken from a chat room client) sets up a data
-subscription based on the session variable `currentRoomId`.
-If the value of `Session.get("currentRoomId")` changes for any reason, the
-function will be automatically re-run, setting up a new subscription that
-replaces the old one.
+这个例子（来自一个聊天室客户端）设置了一个基于会话变量 `currentRoomId` 的数据订阅。
+如果 `Session.get("currentRoomId")` 因为任何原因发生变化，函数就会自动重新运行，然后
+设置一个新的订阅来替代旧的。
 
-This automatic recomputation is achieved by a cooperation between
-`Session` and `Deps.autorun`.  `Deps.autorun` performs an arbitrary "reactive
-computation" inside of which data dependencies are tracked, and it
-will re-run its function argument as necessary.  Data providers like
-`Session`, on the other hand, make note of the computation they are
-called from and what data was requested, and they are prepared to send
-an invalidation signal to the computation when the data changes.
+自动重计算靠 `Session` 和 `Deps.autorun` 的协同来实现。`Deps.autorun` 在内部执行任意
+“响应式计算”来追踪数据依赖性，然后它会重新执行它所必要的函数参数。另一方面，像
+`Session` 等数据提供者，在计算中记录下他们被谁调用和哪些数据被请求，然后准备好当数据
+发生改变时向计算发送一个失效信号。
 
-This simple pattern (reactive computation + reactive data source) has wide
-applicability.  Above, the programmer is saved from writing
-unsubscribe/resubscribe calls and making sure they are called at the
-right time.  In general, Meteor can eliminate whole classes of data
-propagation code which would otherwise clog up your application with
-error-prone logic.
+这种简单模式（响应式计算 + 响应式数据源）有着广泛的适应性。以上使程序员免于编写
+取消订阅调用/重新订阅调用以确保它们在正确的时间被调用。通常 Meteor 能消除全部类型的
+数据传输代码，否则易错的逻辑将堵塞你的应用。
 
-These Meteor functions run your code as a reactive computation:
+这些 Meteor 函数会像响应式计算一样运行你的代码：
 
 * [Templates](#templates)
 * [`Meteor.render`](#meteor_render) and [`Meteor.renderList`](#meteor_renderlist)
 * [`Deps.autorun`](#deps_autorun)
 
-And the reactive data sources that can trigger changes are:
+能够触发变化的响应式数据源：
 
 * [`Session`](#session) variables
 * Database queries on [Collections](#find)
@@ -341,18 +332,15 @@ And the reactive data sources that can trigger changes are:
 * [`Meteor.userId`](#meteor_userid)
 * [`Meteor.loggingIn`](#meteor_loggingin)
 
-In addition, the following functions which return an object with a
-`stop` method, if called from a reactive computation, are stopped when
-the computation is rerun or stopped:
+此外，下列函数会用 `stop` 类函数返回一个对象，如果调用来自一个响应式计算，
+当计算重新运行或停止运行时，函数会停止。
 
 * [`Deps.autorun`](#deps_autorun) (nested)
 * [`Meteor.subscribe`](#meteor_subscribe)
 * [`observe()`](#observe) and [`observeChanges()`](#observe_changes) on cursors
 
-Meteor's
-[implementation](https://github.com/meteor/meteor/blob/master/packages/deps/deps.js)
-is a package called [`Deps`](#deps) that is fairly short and straightforward.
-You can use it yourself to implement new reactive data sources.
+Meteor 的[实现](https://github.com/meteor/meteor/blob/master/packages/deps/deps.js)
+是一个相当短和简单的名为 [`Deps`](#deps) 的包。你可以自己使用它去实现新的响应式数据源。
 
 {{/better_markdown}}
 </template>
@@ -595,7 +583,7 @@ Meteor 会保存现有数据并且刷新代码。
 
 <h3 class="nosection">运行你自己的基础结构</h3>
 
-你也可以在你自己的基础结构上运行程序，或者像 Heroku 等其他托管服务商。
+你也可以在你自己的基础结构上运行程序，或者使用像 Heroku 等其他托管服务商。
 
 想要马上开始，运行
 
