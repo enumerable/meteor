@@ -391,91 +391,65 @@ even if the method's writes are not available yet, you can specify an
 passed as an array rather than directly as arguments, and you can specify
 options about how the client executes the method.
 
-<h2 id="connections"><span>Server connections</span></h2>
+<h2 id="connections"><span>服务器连接</span></h2>
 
-These functions manage and inspect the network connection between the
-Meteor client and server.
+这些函数管理和检查 Meteor 客户端与服务器间的网络连接。
 
 {{> api_box status}}
 
-This method returns the status of the connection between the client and
-the server. The return value is an object with the following fields:
+这个方法返回客户端和服务器间的连接状态。返回值是一个有如下字段的对象：
 
 <dl class="objdesc">
 {{#dtdd name="connected" type="Boolean"}}
-  True if currently connected to the server. If false, changes and
-  method invocations will be queued up until the connection is
-  reestablished.
+  如果当前已连接到服务器则返回 true。如果返回 false，更新和调用方法将在
+  队列中等待，直到连接重新建立。
 {{/dtdd}}
 
 {{#dtdd name="status" type="String"}}
-  Describes the current reconnection status. The possible
-  values are `connected` (the connection is up and
-  running), `connecting` (disconnected and trying to open a
-  new connection), `failed` (permanently failed to connect; e.g., the client
-  and server support different versions of DDP) and `waiting` (failed
-  to connect and waiting to try to reconnect).
+  表示当前的重连接状态。可能的值有 `connected`（已连接并正在运行）、`connecting`
+  （已断开并尝试打开一个新连接）、`failed`（永久连接失败，例如：客户端与服务器
+  支持的 DDP 版本不同）和 `waiting`（连接已失败并等待尝试重新连接）
 {{/dtdd}}
 
 {{#dtdd name="retryCount" type="Number"}}
-  The number of times the client has tried to reconnect since the
-  connection was lost. 0 when connected.
+  自连接丢失后，客户端尝试重新连接的次数。当已连接时为 0。
 {{/dtdd}}
 
-{{#dtdd name="retryTime" type="Number or undefined"}}
-  The estimated time of the next reconnection attempt. To turn this
-  into an interval until the next reconnection, use
-  `retryTime - (new Date()).getTime()`. This key will
-  be set only when `status` is `waiting`.
+{{#dtdd name="retryTime" type="Number 或 Undefined"}}
+  估计下次尝试重新连接的时间。使用 `retryTime - (new Date()).getTime()` 把间隔
+  加入到下一次重新连接之前。这个键只有当 `status` 为 `waiting` 时才会被设置。
 {{/dtdd}}
 
-{{#dtdd name="reason" type="String or undefined"}}
-  If `status` is `failed`, a description of why the connection failed.
+{{#dtdd name="reason" type="String 或 Undefined"}}
+  如果 `status` 为 `failed`，说明为什么会连接失败。
 {{/dtdd}}
 </dl>
 
-Instead of using callbacks to notify you on changes, this is
-a [reactive](#reactivity) data source. You can use it in a
-[template](#templates) or [computation](#deps_autorun)
-to get realtime updates.
+[响应式](#reactivity)数据源代替回调函数通知你更新。你可以使用
+[模板](#templates)或[运算](#deps_autorun)获取实时更新。
 
 {{> api_box reconnect}}
 
 {{> api_box connect}}
 
-To call methods on another Meteor application or subscribe to its data
-sets, call `Meteor.connect` with the URL of the application.
-`Meteor.connect` returns an object which provides:
+要在另一个 Meteor 程序上调用方法或订阅它们的数据集合，与一个应用的 URL 一起
+调用 `Meteor.connect`。`Meteor.connect` 就会返回一个提供以下函数的对象：
+* `subscribe` - 订阅一个记录集。参见 [Meteor.subscribe](#meteor_subscribe)。
+* `call` - 激活一个方法。参见 [Meteor.call](#meteor_call)。
+* `apply` - 激活一个带参数数组的方法。参见 [Meteor.apply](#meteor_apply)。
+* `methods` - 定义在远程服务器上被定义为仅供客户端 stub 使用的方法。参见
+  [Meteor.methods](#meteor_methods)。
+* `status` - 获取当前的连接状态。参见 [Meteor.status](#meteor_status)。
+* `reconnect` - 参见 [Meteor.reconnect](#meteor_reconnect).
+* `onReconnect` - 设置它到一个函数是调用重新连接的第一步。在其他方法执行之前，这个函数
+  可以调用一些特殊的方法。例如，它可以被用来在新连接上重建合适的认证上下文。
 
-* `subscribe` -
-  Subscribe to a record set. See
-  [Meteor.subscribe](#meteor_subscribe).
-* `call` -
-  Invoke a method. See [Meteor.call](#meteor_call).
-* `apply` -
-  Invoke a method with an argument array. See
-  [Meteor.apply](#meteor_apply).
-* `methods` -
-  Define client-only stubs for methods defined on the remote server. See
-  [Meteor.methods](#meteor_methods).
-* `status` -
-  Get the current connection status. See
-  [Meteor.status](#meteor_status).
-* `reconnect` -
-  See [Meteor.reconnect](#meteor_reconnect).
-* `onReconnect` - Set this to a function to be called as the first step of
-  reconnecting. This function can call methods which will be executed before
-  any other outstanding methods. For example, this can be used to re-establish
-  the appropriate authentication context on the new connection.
 
-By default, clients open a connection to the server from which they're loaded.
-When you call `Meteor.subscribe`, `Meteor.status`, `Meteor.call`, and
-`Meteor.apply`, you are using a connection back to that default
-server.
+默认情况下，客户端在它们已载入的地方打开一个连接到服务器。当你调用 `Meteor.subscribe`、
+`Meteor.status`、`Meteor.call` 和 `Meteor.apply` 时，你是在使用一个连接回到那个服务器。
 
 {{#warning}}
-In this release, `Meteor.connect` can only be called on the client.
-Servers can not yet connect to other servers.
+在这个版本中，`Meteor.connect` 只能在客户端上被调用。服务器还不能连接其他服务器。
 {{/warning}}
 
 <h2 id="collections"><span>Collections</span></h2>
