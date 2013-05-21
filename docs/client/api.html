@@ -446,7 +446,7 @@ options about how the client executes the method.
   可以调用一些特殊的方法。例如，它可以被用来在新连接上重建合适的认证上下文。
 
 默认情况下，客户端在它们已载入的地方打开一个连接到服务器。当你调用 `Meteor.subscribe`、
-`Meteor.status`、`Meteor.call` 和 `Meteor.apply` 时，你是在使用一个连接回到那个服务器。
+`Meteor.status`、`Meteor.call` 和 `Meteor.apply` 时，你使用的是返回默认服务器的连接。
 
 {{#warning}}
 在这个版本中，`Meteor.connect` 只能在客户端上被调用。服务器还不能连接其他服务器。
