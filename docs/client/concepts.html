@@ -39,7 +39,7 @@ CSS 文件也要全集中在一起：这样客户机就可以收到一个拥有�
 
 另一方面，模板部分被转化为了 JavaScript 的函数，可在以 `Template` 命名的空间中使用。这是一个很方便的将 HTML 模板传输到客户机的办法。更多介绍请看 [templates](#templates) 部分。
 
-最后， `public` 文件夹用来放图片、`favicon.ico`、`robots.txt` 和其他文件，Meteor 服务使它们可以被直接访问，就像 Rails 或 Django 项目一样。
+最后，`public` 文件夹用来放图片、`favicon.ico`、`robots.txt` 和其他文件，Meteor 服务使它们可以被直接访问，就像 Rails 或 Django 项目一样。
 
 你写的应用时最好对文件加载顺序不敏感，例如通过使用 [Meteor.startup](#meteor_startup)、或将那些对载入顺序敏感的代码放到 [Smart Packages](#smartpackages) 中， 可以明确地控制好它们和与之相关的其他包的加载顺序。然后，有时候加载顺序的依赖关系在应用中是无法避免的。应用中的 JavaScript 和 CSS 文件依照以下规则加载：
 
