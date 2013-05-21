@@ -1349,7 +1349,7 @@ you need to use the `underscore` package and write
 <h2 id="accounts_api"><span>账户</span></h2>
 
 Meteor的账户系统是在基于提供[`publish`](#publish_userId)和[`methods`](#method_userId)的`userId`所建设的。
-核心的包含有存储在数据库的用户档案和额外的包：包含[secure password
+核心的包含有存储在数据库的用户信息和额外的包：包含[secure password
 authentication](#accounts_passwords)，[integration with third party
 login services](#meteor_loginwithexternalservice)和一个[pre-built user
 interface](#accountsui)。
@@ -1364,13 +1364,13 @@ interface](#accountsui)。
 从[`Meteor.users`](#meteor_users)这个集合中获得正在使用该应用的用户的记录。
 
 在客户端中，这将会成是从服务器中发布的文档的一部分的子集（文档的其他部分不会在客户端中出现）。
-通常服务器会公布`username`，`emails`和`profile`。可以在[`Meteor.users`](#meteor_users)中看到用户档案的更多部分。
+通常服务器会公布`username`，`emails`和`profile`。可以在[`Meteor.users`](#meteor_users)中看到用户信息的更多部分。
 
 {{> api_box userId}}
 
 {{> api_box users}}
 
-这个集合包含了每个注册用户的档案。这是一个用户档案的例子：
+这个集合包含了每个注册用户的信息。这是一个用户信息的例子：
 
     {
       _id: "bbca5d6a-2156-41c4-89da-0329e8c99a4f",  // Meteor.userId()
@@ -1399,18 +1399,18 @@ interface](#accountsui)。
       }
     }
 
-一个用户档案可以包含任何你想存储的有关用户的数据。Meteor将对这些数据进行特殊的定义：
+一个user document可以包含任何你想存储的有关用户的数据。Meteor将对这些数据进行特殊的定义：
 
 - `username`：一个独一无二的用来区分用户的字符串。
 - `emails`: 一个包含很多含有`address`和`verified`属性的对象的数列；1个email地址最多只能属于一个用户。
   `verified`是一个Boolean，如果[email地址已被验证](#accounts_verifyemail)，它的值将为True。
-- `createdAt`: 用户文档的建立时间，为数字的UNIX时间 (现在到1970年1月1日的毫秒数)
+- `createdAt`: user document的建立时间，为数字的UNIX时间 (现在到1970年1月1日的毫秒数)
 - `profile`: 一个用户通常可以新建或更新任何数据的对象。
 - `services`: 一个包含被特定的登录服务使用的数据的对象，
   其`reset`部分包含使用于[forgot password](#accounts_forgotpassword)的链接的tokens
   以及其包含用于在sessions中保持登录状态的tokens的`resume`部分。
 
-类似于所以的[Meteor.Collection](#collections)s，你可以获取在服务端的所以的文档，
+类似于所有的[Meteor.Collection](#collections)s，你可以获取在服务端的所有的文档，
 但是只有被服务端特定公布了的文档才会在客户端中出现。
 
 通常情况下，正在使用应用的用户的`username`，`emails`和`profile`会公布在客户端上。你可以给用户公布额外的部分：
@@ -1424,26 +1424,22 @@ interface](#accountsui)。
 这会包括`username`，`profile`和任何公开的`services`部分（例如`services.facebook.id`，`services.twitter.screenName`）
 除此以外，当使用自动发布时，更多的信息会发布给已登录的用户，包含access tokens。这会允许直接从客户端中生成API响应。（仅限于许可此行为的服务）
 
-Users are by default allowed to specify their own `profile` field with
-[`Accounts.createUser`](#accounts_createuser) and modify it with
-`Meteor.users.update`. To allow users to edit additional fields, use
-[`Meteor.users.allow`](#allow). To forbid users from making any modifications to
-their user document:
+通过[`Accounts.createUser`](#accounts_createuser)，用户默认可以明确指出他们自己的 `profile` 字段
+然后通过 `Meteor.users.update` 编辑。为了允许用户编辑其余的字段，请使用[`Meteor.users.allow`](#allow)。
+如要禁止用户对其user document进行任何编辑：
 
     Meteor.users.deny({update: function () { return true; }});
 
 
 {{> api_box loggingIn}}
 
-For example, [the `accounts-ui` package](#accountsui) uses this to display an
-animation while the login request is being processed.
+举个例子，当登录请求被执行时，[the `accounts-ui` package](#accountsui)使用它展示一个动作。
 
 {{> api_box logout}}
 
 {{> api_box loginWithPassword}}
 
-This function is provided by the `accounts-password` package. See the
-[Passwords](#accounts_passwords) section below.
+这个功能是由 `accounts-password` 包提供的。查看下面的[Passwords](#accounts_passwords)。
 
 
 {{> api_box loginWithExternalService}}
@@ -1454,9 +1450,9 @@ Meteor的客户端将会带着外部应用提供的信息登入Meteor服务端�
 
 <a id="requestpermissions" name="requestpermissions" />
 
-In addition to identifying the user to your application, some services
-have APIs that allow you to take action on behalf of the user. To
-request specific permissions from the user, pass the
+除了识别使用应用的用户，一些服务有允许你代替用户行为的API。为了向用户请求明确的许可，
+通过 `requestPermissions` 选择
+pass the
 `requestPermissions` option the login function. This will cause the user
 to be presented with an additional page in the pop-up dialog to permit
 access to their data. The user's `accessToken` &mdash; with permissions
