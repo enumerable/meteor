@@ -18,7 +18,7 @@
 
 <h2 id="structuringyourapp">构建你的应用</h2>
 
-一个 Meteor 应用包括一个混合压缩、运行在网页浏览器中的 JavaScript ，运行在 Meteor 服务器上 Node.js 容器中的 JavaScript，所有支持的 HTML 片段、CSS 规则和一些静态文件。Meteor 会自动打包并传送这些不同的部分，你可以很灵活地选择如何在你的文件树中构建这些组件。
+一个 Meteor 应用包括运行在网页浏览器中的 JavaScript，运行在 Meteor 服务器上 Node.js 容器中的 JavaScript 和所有支持的 HTML 片段、CSS 规则以及其他静态文件。Meteor 会自动打包并传送这些不同的部分，你可以很灵活地选择如何在你的文件树中构建这些组件。
 
 服务器上的唯一组件就是 JavaScript，Meteor 会收集除了 `client` 和 `public` 子目录里的所有 JavaScript 文件，并把他们都载入到一个 Node.js 服务器实例中的纤程中。在 Meteor 中，每个请求都会让你的服务器启动一个线程，而非 Node.js 标准的异步回调模式。我们发现线性执行模型更适合标准的 Meteor 服务器程序。
 
