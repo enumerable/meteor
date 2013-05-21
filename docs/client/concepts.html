@@ -1,9 +1,8 @@
 <template name="concepts">
 
-<h1 id="concepts">Concepts</h1>
+<h1 id="concepts">概念</h1>
 
-我们已经徒手写过大量的单页面 JavaScript 程序了，只一种语言（JavaScript）和一种数据格式（JSON）来写程序
-真是一件美事。Meteor 提供了你写这类程序时需要的一切。
+我们已经手工编写了很多单页面 JavaScript 程序了，只用一种语言（JavaScript）和一种数据格式（JSON）来写程序真是一种乐趣，Meteor 提供了我们写这类程序所需要的一切。
 
 {{> structure }}
 {{> data }}
@@ -17,93 +16,42 @@
 <template name="structure">
 {{#better_markdown}}
 
-<h2 id="structuringyourapp">架构你的应用</h2>
+<h2 id="structuringyourapp">构建你的应用</h2>
 
-一个 Meteor 应用由三部分组成：
+一个 Meteor 应用包括一个混合压缩、运行在网页浏览器中的 JavaScript ，运行在 Meteor 服务器上 Node.js 容器中的 JavaScript，所有支持的 HTML 片段、CSS 规则和一些静态文件。Meteor 会自动打包并传送这些不同的部分，你可以很灵活地选择如何在你的文件树中构建这些组件。
 
-* 运行在浏览器中的 JavaScript
-* 运行在 Meteor 服务端上的 Node.js 运行时中的 JavaScript
-* HTML 片段，CSS 规则，以及一些静态文件
+服务器上的唯一组件就是 JavaScript，Meteor 会收集除了 `client` 和 `public` 子目录里的所有 JavaScript 文件，并把他们都载入到一个 Node.js 服务器实例中的纤程中。在 Meteor 中，每个请求都会让你的服务器启动一个线程，而非 Node.js 标准的异步回调模式。我们发现线性执行模型更适合标准的 Meteor 服务器程序。
 
-Meteor 会自动打包并传送这不同的几部分。And，你可以在你的代码树中很灵活地选择如何架构这些组件。
+在客户端上则有更多的组件需要考虑。Meteor 会为客户端在你的文件树上收集除了 `server` 和 `public` 子目录里的所有 JavaScript 文件。它还会压缩 bundle 的体积并为每个新客户机服务。你可以尽情地使用你所喜欢的目录结构，像把整个应用写进单个 JavaScript 文件中、创建一个文件树嵌入其他文件，亦或介于两者之间的任何结构。
 
-服务端的唯一组件就是 JavaScript 代码，Meteor 会收集除了 `client` 和 `public` 子文件之外的
-所有 JavaScript 文件，并把他们都载入到一个 fiber 中的 Node.js 服务端实例。在 Meteor 中，
-每个请求都会让你的服务端启动一个线程，而非 Node.js 传统的异步回调模式。我们发现线性计算模型更适合
-典型的 Meteor 服务端代码。
+一些 JavaScript 库只有在被放置于 `client/compatibility` 子目录下才有效。这个目录中的文件在执行时没有被包裹在一个变量作用域中。这意味着每个顶级 `var` 都被定义为全局变量。此外，这些文件会比其他 JavaScript 文件更早在客户端中执行。
 
-There are more assets to consider on the client side.  Meteor
-gathers all JavaScript files in your tree with the exception of
-the `server` and `public` subdirectories for the
-client.  It minifies this bundle and serves it to each new client.
-You're free to use a single JavaScript file for your entire application, or
-create a nested tree of separate files, or anything in between.
+位于 `client`、`server` 和 `tests` 子目录以外的文件会被客户机和服务器两者加载！这三个目录是放置模块定义和其他函数的地方。Meteor 提供了两个变量：[`isClient`](#meteor_isclient) 和
+[`isServer`](#meteor_isserver) ，这样你的代码就可以根据是在客户机还是在服务器运行来调整具体的执行细节了。（在 `tests` 目录中的文件不会在任何地方加载。）
 
-Some JavaScript libraries only work when placed in the
-`client/compatibility` subdirectory.  Files in this directory are
-executed without being wrapped in a new variable scope.  This means
-that each top-level `var` defines a global variable. In addition,
-these files are executed before other client-side JavaScript files.
+像包括密码或者认证机制等那些你不想提供给客户机的敏感代码都应该放在 `server` 目录。
 
-Files outside the `client`, `server` and `tests` subdirectories are loaded on
-both the client and the server!  That's the place for model definitions and
-other functions.  Meteor provides the variables [`isClient`](#meteor_isclient) and
-[`isServer`](#meteor_isserver) so that your code can alter its behavior depending
-on whether it's running on the client or the server. (Files in directories named
-`tests` are not loaded anywhere.)
+CSS 文件也要全集中在一起：这样客户机就可以收到一个拥有文件树中全部 CSS 的 bundle（除了 `server` 和 `public` 这两个子目录的文件）。
 
-Any sensitive code that you don't want served to the client, such as code
-containing passwords or authentication mechanisms, should be
-kept in the `server` directory.
+在开发模式中， JavaScript 和 CSS 文件是分别传送的，这样使 debug 更容易。
 
-CSS files are gathered together as well: the client will get a bundle with all
-the CSS in your tree (excluding the `server`
-and `public` subdirectories).
+一个 Meteor 应用中的 HTML 文件会和服务端框架有些不同。Meteor 会扫描你文件夹里所有 HTML 文件中的三个顶级元素：即 `<head>`、`<body>` 和 `<template>`。head 和 body 部分被分开串联到单独的 head 及 body 元素上，从而传送至客户端的初始加载页面上。
 
-In development mode, JavaScript and CSS files are sent individually to make
-debugging easier.
+另一方面，模板部分被转化为了 JavaScript 的函数，可在以 `Template` 命名的空间中使用。这是一个很方便的将 HTML 模板传输到客户机的办法。更多介绍请看 [templates](#templates) 部分。
 
-HTML files in a Meteor application are treated quite a bit differently
-from a server-side framework.  Meteor scans all the HTML files in your
-directory for three top-level elements: `<head>`, `<body>`, and
-`<template>`.  The head and body sections are separately concatenated
-into a single head and body, which are transmitted to the client on
-initial page load.
+最后， `public` 文件夹用来放图片、`favicon.ico`、`robots.txt` 和其他文件，Meteor 服务使它们可以被直接访问，就像 Rails 或 Django 项目一样。
 
-Template sections, on the other hand, are converted into JavaScript
-functions, available under the `Template` namespace.  It's
-a really convenient way to ship HTML templates to the client.
-See the [templates](#templates) section for more.
+你写的应用时最好对文件加载顺序不敏感，例如通过使用 [Meteor.startup](#meteor_startup)、或将那些对载入顺序敏感的代码放到 [Smart Packages](#smartpackages) 中， 可以明确地控制好它们和与之相关的其他包的加载顺序。然后，有时候加载顺序的依赖关系在应用中是无法避免的。应用中的 JavaScript 和 CSS 文件依照以下规则加载：
 
-Lastly, the Meteor server will serve any files under the `public`
-directory, just like in a Rails or Django project.  This is the place
-for images, `favicon.ico`, `robots.txt`, and anything else.
+* 应用根目录内 `lib` 文件夹下的文件首先加载。
 
-It is best to write your application in such a way that it is
-insensitive to the order in which files are loaded, for example by
-using [Meteor.startup](#meteor_startup), or by moving load order
-sensitive code into [Smart Packages](#smartpackages), which can explicitly control both
-the load order of their contents and their load order with respect to
-other packages. However sometimes load order dependencies in your
-application are unavoidable. The JavaScript and CSS files in an
-application are loaded according to these rules:
+* 符合 `main.*` 这个格式的文件最后加载。
 
-* Files in the `lib` directory at the root of your application are
-  loaded first.
+* 子目录中的文件在母目录中的文件之前加载，即最深层子目录中的文件首先加载（在 `lib` 之后），根目录的文件最后加载（在 `main.*` 之前）。
 
-* Files that match `main.*` are loaded after everything else.
+* 同目录下的文件，按文件名的字母顺序来加载。
 
-* Files in subdirectories are loaded before files in parent
-  directories, so that files in the deepest subdirectory are loaded
-  first (after `lib`), and files in the root directory are loaded last
-  (other than `main.*`).
-
-* Within a directory, files are loaded in alphabetical order by
-  filename.
-
-These rules stack, so that within `lib`, for example, files are still
-loaded in alphabetical order; and if there are multiple files named
-`main.js`, the ones in subdirectories are loaded earlier.
+这些规则的效果是叠加的，所以对 `lib` 文件夹内的文件也有效，例如 `lib` 文件夹内的文件也要按照文件名的字母排序来加载；同样如果有多个 `main.js` 文件，处于子目录中的先加载。
 
 {{/better_markdown}}
 </template>
