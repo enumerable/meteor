@@ -434,6 +434,7 @@ options about how the client executes the method.
 
 要在另一个 Meteor 程序上调用方法或订阅它们的数据集合，与一个应用的 URL 一起
 调用 `Meteor.connect`。`Meteor.connect` 就会返回一个提供以下函数的对象：
+
 * `subscribe` - 订阅一个记录集。参见 [Meteor.subscribe](#meteor_subscribe)。
 * `call` - 激活一个方法。参见 [Meteor.call](#meteor_call)。
 * `apply` - 激活一个带参数数组的方法。参见 [Meteor.apply](#meteor_apply)。
@@ -443,7 +444,6 @@ options about how the client executes the method.
 * `reconnect` - 参见 [Meteor.reconnect](#meteor_reconnect).
 * `onReconnect` - 设置它到一个函数是调用重新连接的第一步。在其他方法执行之前，这个函数
   可以调用一些特殊的方法。例如，它可以被用来在新连接上重建合适的认证上下文。
-
 
 默认情况下，客户端在它们已载入的地方打开一个连接到服务器。当你调用 `Meteor.subscribe`、
 `Meteor.status`、`Meteor.call` 和 `Meteor.apply` 时，你是在使用一个连接回到那个服务器。
