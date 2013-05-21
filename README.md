@@ -14,7 +14,7 @@ Meteor 是个极其简单的、用来搭建现代 Web 应用的环境。
 
 ## 贡献者
 
-???
+@jat001 and others: [https://github.com/enumerable/meteor/issues/2](https://github.com/enumerable/meteor/issues/2)
 
 ## 更多内容
 
