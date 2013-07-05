@@ -73,7 +73,7 @@ Meteor 使得编写分布式客户机代码如同连接本地数据库一样简�
 {{/note}}
 
 每个 Meteor 客户端机包含了一个内存数据库缓存。为了管理客户机缓存，
-服务器 *发布* 若干 JSON 文档集，而客户鸡 *订阅* 这些文档集。
+服务器 *发布* 若干 JSON 文档集，而客户机 *订阅* 这些文档集。
 当某个文档集中的文档发生变化，服务器就会修补每个客户机中的缓存。
 
 由于支持最完善，如今大多数 Meteor 应用使用 MongoDB 作为数据库，
@@ -129,6 +129,7 @@ Meteor 使得编写分布式客户机代码如同连接本地数据库一样简�
 服务器根据你写成 JavaScript 函数形式的允许/拒绝规则集，检查所提交的变更。只有那些通过了所有规则的变更才会被服务器所接受。
 
     // server: don't allow client to insert a party
+
     Parties.allow({
       insert: function (userId, party) {
         return false;
