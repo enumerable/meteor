@@ -41,7 +41,7 @@ CSS 文件也要全集中在一起：这样客户机就可以收到一个拥有�
 
 最后，`public` 文件夹用来放图片、`favicon.ico`、`robots.txt` 和其他文件，Meteor 服务使它们可以被直接访问，就像 Rails 或 Django 项目一样。
 
-你写的应用时最好对文件加载顺序不敏感，例如通过使用 [Meteor.startup](#meteor_startup)、或将那些对载入顺序敏感的代码放到 [Smart Packages](#smartpackages) 中， 可以明确地控制好它们和与之相关的其他包的加载顺序。然后，有时候加载顺序的依赖关系在应用中是无法避免的。应用中的 JavaScript 和 CSS 文件依照以下规则加载：
+你写的应用时最好对文件加载顺序不敏感，例如通过使用 [Meteor.startup](#meteor_startup)、或将那些对载入顺序敏感的代码放到 [智能包](#smartpackages) 中， 可以明确地控制好它们和与之相关的其他包的加载顺序。然后，有时候加载顺序的依赖关系在应用中是无法避免的。应用中的 JavaScript 和 CSS 文件依照以下规则加载：
 
 * 应用根目录内 `lib` 文件夹下的文件首先加载。
 
@@ -62,7 +62,7 @@ CSS 文件也要全集中在一起：这样客户机就可以收到一个拥有�
 <h2 id="dataandsecurity">数据与安全</h2>
 
 Meteor 使得编写分布式客户机代码如同连接本地数据库一样简单。
-这是一种干净、简单、安全的方式，无需实现独立的 PRC 接口，
+这是一种干净、简单、安全的方式，无需实现独立的 RPC 接口，
 不必手动在客户机缓存数据可以避免客户机与服务器间缓慢地交换数据，也不用精心编排当数据发生变化时向每个客户机发送的失效信息。
 
 在 Meteor 中，客户机与服务器共享相同的数据库 API 。完全相同的应用代码，诸如验证器和计算属性等，通常在两处均能运行。但是，运行在服务器上的代码能直接访问数据库，而运行客户机上的代码则 *不能* 。这个差异是 Meteor 数据安全模型的基础。
@@ -80,13 +80,13 @@ Meteor 使得编写分布式客户机代码如同连接本地数据库一样简�
 但将来会陆续支持其它数据库。[`Meteor.Collection`](http://docs.meteor.com/#meteor_collection) 类用来声明和操作 Mongo 集合。
 归功于 Meteor 客户端的 Mongo 模拟器—— `minimongo` ，客户机和服务器上的代码都能使用 `Meteor.Collection` 。
 
-    // declare collections
-    // this code should be included in both the client and the server
+    // 定义文档集
+    // 以下代码应该被同时包含在客户端和服务器中
     Rooms = new Meteor.Collection("rooms");
     Messages = new Meteor.Collection("messages");
     Parties = new Meteor.Collection("parties");
 
-    // server: populate collections with some initial documents
+    // 服务器：为文档集生成一些初始化文档
     Rooms.insert({name: "Conference Room A"});
     var myRooms = Rooms.find({}).fetch();
     Messages.insert({text: "Hello world", room: myRooms[0]._id});
@@ -94,18 +94,18 @@ Meteor 使得编写分布式客户机代码如同连接本地数据库一样简�
 
 在服务器上，每个文档集由一个发布函数定义。每当一个新客户机订阅一个文档集时，发布函数就执行一次。文档集中的数据可以来自任何地方，但最常见情况是来自发布函数的一次数据库查询。
 
-    // server: publish all room documents
+    // 服务器：发布所有的聊天室文档
     Meteor.publish("all-rooms", function () {
       return Rooms.find(); // everything
     });
 
-    // server: publish all messages for a given room
+    // 服务器：发布某个指定聊天室的所有消息
     Meteor.publish("messages", function (roomId) {
       check(roomId, String);
       return Messages.find({room: roomId});
     });
 
-    // server: publish the set of parties the logged-in user can see.
+    // 服务器：发布当前已登录用户所能看到的所有参与者的集合
     Meteor.publish("parties", function () {
       return Parties.find({$or: [{"public": true},
                                  {invited: this.userId},
@@ -116,11 +116,11 @@ Meteor 使得编写分布式客户机代码如同连接本地数据库一样简�
 
 一旦订阅，使用缓存的客户机就如同使用本地高速数据库的一样，客户机上的代码也被显著简化，而且从不需要费时在客户机与服务器间往返读取数据。但这受限于缓存中的内容：客户机请求文档集时，只有那些服务器发布给客户机的才会被返回。
 
-    // client: start a parties subscription
+    // 客户机：开始订阅参与者（parties）
     Meteor.subscribe("parties");
 
-    // client: return array of Parties this client can read
-    return Parties.find().fetch(); // synchronous!
+    // 客户机：返回当前客户机可以读取的参与者数组
+    return Parties.find().fetch(); // 同步调用！
 
 高级的客户机能够开启或关闭订阅，以便控制缓存中的数据量以及管理网络流量。
 当订阅关闭后，所有的文档集都将从缓存中删除，除非另一个活动订阅提供了相同的文档集。
@@ -128,14 +128,14 @@ Meteor 使得编写分布式客户机代码如同连接本地数据库一样简�
 当客户机 *变更* 了一个或多个文档，它会向服务器发送一个请求变更的消息。
 服务器根据你写成 JavaScript 函数形式的允许/拒绝规则集，检查所提交的变更。只有那些通过了所有规则的变更才会被服务器所接受。
 
-    // server: don't allow client to insert a party
+    // 服务器：不允许客户机添加一个参与者
     Parties.allow({
       insert: function (userId, party) {
         return false;
       }
     });
 
-    // client: this will fail
+    // 客户机：以下代码将导致失败
     var party = { ... };
     Parties.insert(party);
 
