@@ -38,6 +38,60 @@
     "release": "0.6.3.1"
   },
   {
+    "release": "0.6.4"
+  },
+  {
+    "release": "0.6.4.1"
+  },
+  {
+    "release": "0.6.4.2"
+  },
+  {
+    "release": "0.6.5",
+    "notices": [
+      "Any custom application packages in the `packages` directory",
+      "must now specify their exported symbols.  See",
+      "https://docs.meteor.com/#writingpackages"
+    ]
+  },
+  {
+    "release": "0.6.5.1"
+  },
+  {
+    "release": "0.6.5.2"
+  },
+  {
+    "release": "0.6.6"
+  },
+  {
+    "release": "0.6.6.1"
+  },
+  {
+    "release": "0.6.6.2"
+  },
+  {
+    "release": "0.6.6.3"
+  },
+  {
+    "release": "0.7.0"
+  },
+  {
+    "release": "0.7.0.1"
+  },
+  {
+    "release": "0.7.1"
+  },
+  {
+    "release": "0.7.1.1",
+    "packageNotices": {
+      "jquery": ["jquery has been upgraded to 1.11.0. See ",
+                 "http://jquery.com/upgrade-guide/1.9/"]
+    }
+  },
+  {
+    "release": "0.7.1.2"
+  },
+  {
     "release": "NEXT"
   }
 ]

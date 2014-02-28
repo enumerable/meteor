@@ -10,14 +10,19 @@ Template._loginButtonsLoggedOutSingleLoginButton.events({
         loginButtonsSession.closeDropdown();
       } else if (err instanceof Accounts.LoginCancelledError) {
         // do nothing
-      } else if (err instanceof Accounts.ConfigError) {
+      } else if (err instanceof ServiceConfiguration.ConfigError) {
         loginButtonsSession.configureService(serviceName);
       } else {
         loginButtonsSession.errorMessage(err.reason || "Unknown error");
       }
     };
 
-    var loginWithService = Meteor["loginWith" + capitalize(serviceName)];
+    // XXX Service providers should be able to specify their
+    // `Meteor.loginWithX` method name.
+    var loginWithService = Meteor["loginWith" +
+                                  (serviceName === 'meteor-developer' ?
+                                   'MeteorDeveloperAccount' :
+                                   capitalize(serviceName))];
 
     var options = {}; // use default scope unless specified
     if (Accounts.ui._options.requestPermissions[serviceName])
@@ -30,13 +35,15 @@ Template._loginButtonsLoggedOutSingleLoginButton.events({
 });
 
 Template._loginButtonsLoggedOutSingleLoginButton.configured = function () {
-  return !!Accounts.loginServiceConfiguration.findOne({service: this.name});
+  return !!ServiceConfiguration.configurations.findOne({service: this.name});
 };
 
 Template._loginButtonsLoggedOutSingleLoginButton.capitalizedName = function () {
   if (this.name === 'github')
     // XXX we should allow service packages to set their capitalized name
     return 'GitHub';
+  else if (this.name === 'meteor-developer')
+    return 'Meteor';
   else
     return capitalize(this.name);
 };

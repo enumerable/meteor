@@ -9,8 +9,11 @@
 // We don't do any heartbeating. (The logic that did this in sockjs was removed,
 // because it used a built-in sockjs mechanism. We could do it with WebSocket
 // ping frames or with DDP-level messages.)
-Meteor._DdpClientStream = function (endpoint) {
+LivedataTest.ClientStream = function (endpoint, options) {
   var self = this;
+  self.options = _.extend({
+    retry: true
+  }, options);
 
   // WebSocket-Node https://github.com/Worlize/WebSocket-Node
   // Chosen because it can run without native components. It has a
@@ -31,9 +34,15 @@ Meteor._DdpClientStream = function (endpoint) {
   self.endpoint = endpoint;
   self.currentConnection = null;
 
-  self.client.on('connect', function (connection) {
-    return self._onConnect(connection);
-  });
+  options = options || {};
+  self.headers = options.headers || {};
+
+  self.client.on('connect', Meteor.bindEnvironment(
+    function (connection) {
+      return self._onConnect(connection);
+    },
+    "stream connect callback"
+  ));
 
   self.client.on('connectFailed', function (error) {
     // XXX: Make this do something better than make the tests hang if it does not work.
@@ -42,12 +51,11 @@ Meteor._DdpClientStream = function (endpoint) {
 
   self._initCommon();
 
-  self.expectingWelcome = false;
   //// Kickoff!
   self._launchConnection();
 };
 
-_.extend(Meteor._DdpClientStream.prototype, {
+_.extend(LivedataTest.ClientStream.prototype, {
 
   // data is a utf8 string. Data sent while not connected is dropped on
   // the floor, and it is up the user of this API to retransmit lost
@@ -59,8 +67,21 @@ _.extend(Meteor._DdpClientStream.prototype, {
     }
   },
 
+  // Changes where this connection points
+  _changeUrl: function (url) {
+    var self = this;
+    self.endpoint = url;
+  },
+
   _onConnect: function (connection) {
     var self = this;
+
+    if (self._forcedToDisconnect) {
+      // We were asked to disconnect between trying to open the connection and
+      // actually opening it. Let's just pretend this never happened.
+      connection.close();
+      return;
+    }
 
     if (self.currentStatus.connected) {
       // We already have a connection. It must have been the case that
@@ -77,34 +98,46 @@ _.extend(Meteor._DdpClientStream.prototype, {
       self.connectionTimer = null;
     }
 
-    connection.on('error', function (error) {
-      if (self.currentConnection !== this)
-        return;
+    var onError = Meteor.bindEnvironment(
+      function (_this, error) {
+        if (self.currentConnection !== _this)
+          return;
 
-      Meteor._debug("stream error", error.toString(),
-                    (new Date()).toDateString());
-      self._lostConnection();
+        Meteor._debug("stream error", error.toString(),
+                      (new Date()).toDateString());
+        self._lostConnection();
+      },
+      "stream error callback"
+    );
+
+    connection.on('error', function (error) {
+      // We have to pass in `this` explicitly because bindEnvironment
+      // doesn't propagate it for us.
+      onError(this, error);
     });
+
+    var onClose = Meteor.bindEnvironment(
+      function (_this) {
+        if (self.options._testOnClose)
+          self.options._testOnClose();
+
+        if (self.currentConnection !== _this)
+          return;
+
+        self._lostConnection();
+      },
+      "stream close callback"
+    );
 
     connection.on('close', function () {
-      if (self.currentConnection !== this)
-        return;
-
-      self._lostConnection();
+      // We have to pass in `this` explicitly because bindEnvironment
+      // doesn't propagate it for us.
+      onClose(this);
     });
 
-    self.expectingWelcome = true;
     connection.on('message', function (message) {
       if (self.currentConnection !== this)
         return; // old connection still emitting messages
-
-      if (self.expectingWelcome) {
-        // Discard the first message that comes across the
-        // connection. It is the hot code push version identifier and
-        // is not actually part of DDP.
-        self.expectingWelcome = false;
-        return;
-      }
 
       if (message.type === "utf8") // ignore binary frames
         _.each(self.eventCallbacks.message, function (callback) {
@@ -129,8 +162,9 @@ _.extend(Meteor._DdpClientStream.prototype, {
 
     self._clearConnectionTimer();
     if (self.currentConnection) {
-      self.currentConnection.close();
+      var conn = self.currentConnection;
       self.currentConnection = null;
+      conn.close();
     }
   },
 
@@ -157,7 +191,10 @@ _.extend(Meteor._DdpClientStream.prototype, {
     // a protocol and the server doesn't send one back (and sockjs
     // doesn't). also, related: I guess we have to accept that
     // 'stream' is ddp-specific
-    self.client.connect(Meteor._DdpClientStream._toWebsocketUrl(self.endpoint));
+    self.client.connect(toWebsocketUrl(self.endpoint),
+                        undefined, // protocols
+                        undefined, // origin
+                        self.headers);
 
     if (self.connectionTimer)
       clearTimeout(self.connectionTimer);

@@ -1,4 +1,3 @@
-
 // XXX from Underscore.String (http://epeli.github.com/underscore.string/)
 var startsWith = function(str, starts) {
   return str.length >= starts.length &&
@@ -52,19 +51,43 @@ var translateUrl =  function(url, newSchemeBase, subPath) {
     url = newSchemeBase + "://" + url;
   }
 
+  // XXX This is not what we should be doing: if I have a site
+  // deployed at "/foo", then DDP.connect("/") should actually connect
+  // to "/", not to "/foo". "/" is an absolute path. (Contrast: if
+  // deployed at "/foo", it would be reasonable for DDP.connect("bar")
+  // to connect to "/foo/bar").
+  //
+  // We should make this properly honor absolute paths rather than
+  // forcing the path to be relative to the site root. Simultaneously,
+  // we should set DDP_DEFAULT_CONNECTION_URL to include the site
+  // root. See also client_convenience.js #RationalizingRelativeDDPURLs
+  url = Meteor._relativeToSiteRootUrl(url);
+
   if (endsWith(url, "/"))
     return url + subPath;
   else
     return url + "/" + subPath;
 };
 
-_.extend(Meteor._DdpClientStream.prototype, {
+toSockjsUrl = function (url) {
+  return translateUrl(url, "http", "sockjs");
+};
+
+toWebsocketUrl = function (url) {
+  var ret = translateUrl(url, "ws", "websocket");
+  return ret;
+};
+
+LivedataTest.toSockjsUrl = toSockjsUrl;
+
+
+_.extend(LivedataTest.ClientStream.prototype, {
 
   // Register for callbacks.
   on: function (name, callback) {
     var self = this;
 
-    if (name !== 'message' && name !== 'reset' && name !== 'update_available')
+    if (name !== 'message' && name !== 'reset')
       throw new Error("unknown event type: " + name);
 
     if (!self.eventCallbacks[name])
@@ -80,27 +103,6 @@ _.extend(Meteor._DdpClientStream.prototype, {
     // how long to wait until we declare the connection attempt
     // failed.
     self.CONNECT_TIMEOUT = 10000;
-
-
-    // time for initial reconnect attempt.
-    self.RETRY_BASE_TIMEOUT = 1000;
-    // exponential factor to increase timeout each attempt.
-    self.RETRY_EXPONENT = 2.2;
-    // maximum time between reconnects. keep this intentionally
-    // high-ish to ensure a server can recover from a failure caused
-    // by load
-    self.RETRY_MAX_TIMEOUT = 5 * 60000; // 5 minutes
-    // time to wait for the first 2 retries.  this helps page reload
-    // speed during dev mode restarts, but doesn't hurt prod too
-    // much (due to CONNECT_TIMEOUT)
-    self.RETRY_MIN_TIMEOUT = 10;
-    // how many times to try to reconnect 'instantly'
-    self.RETRY_MIN_COUNT = 2;
-    // fuzz factor to randomize reconnect times by. avoid reconnect
-    // storms.
-    self.RETRY_FUZZ = 0.5; // +- 25%
-
-
 
     self.eventCallbacks = {}; // name -> [callback]
 
@@ -121,7 +123,7 @@ _.extend(Meteor._DdpClientStream.prototype, {
     };
 
     //// Retry logic
-    self.retryTimer = null;
+    self._retry = new Retry;
     self.connectionTimer = null;
 
   },
@@ -129,9 +131,18 @@ _.extend(Meteor._DdpClientStream.prototype, {
   // Trigger a reconnect.
   reconnect: function (options) {
     var self = this;
+    options = options || {};
+
+    if (options.url) {
+      self._changeUrl(options.url);
+    }
+
+    if (options._sockjsOptions) {
+      self.options._sockjsOptions = options._sockjsOptions;
+    }
 
     if (self.currentStatus.connected) {
-      if (options && options._force) {
+      if (options._force || options.url) {
         // force reconnect.
         self._lostConnection();
       } // else, noop.
@@ -143,32 +154,42 @@ _.extend(Meteor._DdpClientStream.prototype, {
       self._lostConnection();
     }
 
-    if (self.retryTimer)
-      clearTimeout(self.retryTimer);
-    self.retryTimer = null;
+    self._retry.clear();
     self.currentStatus.retryCount -= 1; // don't count manual retries
     self._retryNow();
   },
 
-  // Permanently disconnect a stream.
-  forceDisconnect: function (optionalErrorMessage) {
+  disconnect: function (options) {
     var self = this;
-    self._forcedToDisconnect = true;
-    self._cleanup();
-    if (self.retryTimer) {
-      clearTimeout(self.retryTimer);
-      self.retryTimer = null;
+    options = options || {};
+
+    // Failed is permanent. If we're failed, don't let people go back
+    // online by calling 'disconnect' then 'reconnect'.
+    if (self._forcedToDisconnect)
+      return;
+
+    // If _permanent is set, permanently disconnect a stream. Once a stream
+    // is forced to disconnect, it can never reconnect. This is for
+    // error cases such as ddp version mismatch, where trying again
+    // won't fix the problem.
+    if (options._permanent) {
+      self._forcedToDisconnect = true;
     }
+
+    self._cleanup();
+    self._retry.clear();
+
     self.currentStatus = {
-      status: "failed",
+      status: (options._permanent ? "failed" : "offline"),
       connected: false,
       retryCount: 0
     };
-    if (optionalErrorMessage)
-      self.currentStatus.reason = optionalErrorMessage;
+
+    if (options._permanent && options._error)
+      self.currentStatus.reason = options._error;
+
     self.statusChanged();
   },
-
 
   _lostConnection: function () {
     var self = this;
@@ -177,35 +198,24 @@ _.extend(Meteor._DdpClientStream.prototype, {
     self._retryLater(); // sets status. no need to do it here.
   },
 
-  _retryTimeout: function (count) {
-    var self = this;
-
-    if (count < self.RETRY_MIN_COUNT)
-      return self.RETRY_MIN_TIMEOUT;
-
-    var timeout = Math.min(
-      self.RETRY_MAX_TIMEOUT,
-      self.RETRY_BASE_TIMEOUT * Math.pow(self.RETRY_EXPONENT, count));
-    // fuzz the timeout randomly, to avoid reconnect storms when a
-    // server goes down.
-    timeout = timeout * ((Random.fraction() * self.RETRY_FUZZ) +
-                         (1 - self.RETRY_FUZZ/2));
-    return timeout;
-  },
-
   // fired when we detect that we've gone online. try to reconnect
   // immediately.
   _online: function () {
-    this.reconnect();
+    // if we've requested to be offline by disconnecting, don't reconnect.
+    if (this.currentStatus.status != "offline")
+      this.reconnect();
   },
 
   _retryLater: function () {
     var self = this;
 
-    var timeout = self._retryTimeout(self.currentStatus.retryCount);
-    if (self.retryTimer)
-      clearTimeout(self.retryTimer);
-    self.retryTimer = setTimeout(_.bind(self._retryNow, self), timeout);
+    var timeout = 0;
+    if (self.options.retry) {
+      timeout = self._retry.retryLater(
+        self.currentStatus.retryCount,
+        _.bind(self._retryNow, self)
+      );
+    }
 
     self.currentStatus.status = "waiting";
     self.currentStatus.connected = false;
@@ -235,17 +245,5 @@ _.extend(Meteor._DdpClientStream.prototype, {
     if (self.statusListeners)
       self.statusListeners.depend();
     return self.currentStatus;
-  }
-});
-
-_.extend(Meteor._DdpClientStream, {
-
-  _toSockjsUrl: function (url) {
-    return translateUrl(url, "http", "sockjs");
-  },
-
-  _toWebsocketUrl: function (url) {
-    var ret = translateUrl(url, "ws", "websocket");
-    return ret;
   }
 });

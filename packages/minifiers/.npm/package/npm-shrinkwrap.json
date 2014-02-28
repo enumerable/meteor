@@ -1,0 +1,47 @@
+{
+  "dependencies": {
+    "uglify-js": {
+      "version": "2.4.7",
+      "dependencies": {
+        "async": {
+          "version": "0.2.9"
+        },
+        "source-map": {
+          "version": "0.1.31",
+          "dependencies": {
+            "amdefine": {
+              "version": "0.1.0"
+            }
+          }
+        },
+        "optimist": {
+          "version": "0.3.7",
+          "dependencies": {
+            "wordwrap": {
+              "version": "0.0.2"
+            }
+          }
+        },
+        "uglify-to-browserify": {
+          "version": "1.0.1"
+        }
+      }
+    },
+    "css-parse": {
+      "version": "1.7.0"
+    },
+    "css-stringify": {
+      "version": "1.4.1",
+      "dependencies": {
+        "source-map": {
+          "version": "0.1.31",
+          "dependencies": {
+            "amdefine": {
+              "version": "0.1.0"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+# This makes it easier to find GitHub usernames for History.md.
+#
+# This controls 'git shortlog'. eg, run:
+#   git shortlog -s release/0.6.5.1..HEAD
+# to get a sorted list of all committers to revisions in HEAD but not
+# in 0.6.5.1.
+#
+# For any emails that show up in the shortlog that aren't in one of
+# these lists, figure out their GitHub username and add them.
+
+GITHUB: AlexeyMK <alexey@alexeymk.com>
+GITHUB: ansman <nicklas@ansman.se>
+GITHUB: awwx <andrew.wilcox@gmail.com>
+GITHUB: codeinthehole <david.winterbottom@gmail.com>
+GITHUB: dandv <ddascalescu+github@gmail.com>
+GITHUB: DenisGorbachev <Denis.Gorbachev@faster-than-wind.ru>
+GITHUB: emgee3 <hello@gravitronic.com>
+GITHUB: EOT <eot@gmx.at>
+GITHUB: FooBarWidget <honglilai@gmail.com>
+GITHUB: jacott <geoffjacobsen@gmail.com>
+GITHUB: Maxhodges <Max@whiterabbitpress.com>
+GITHUB: meawoppl <meawoppl@gmail.com>
+GITHUB: mitar <mitar.git@tnode.com>
+GITHUB: mitar <mitar.github@tnode.com>
+GITHUB: mizzao <mizzao@gmail.com>
+GITHUB: mquandalle <maxime.quandalle@gmail.com>
+GITHUB: nathan-muir <ndmuir@gmail.com>
+GITHUB: RobertLowe <robert@iblargz.com>
+GITHUB: ryw <ry@rywalker.com>
+GITHUB: rzymek <rzymek@gmail.com>
+GITHUB: sdarnell <stephen@darnell.plus.com>
+GITHUB: timhaines <tmhaines@gmail.com>
+GITHUB: jfhamlin <jfhamlin@gmail.com>
+GITHUB: marcandre <github@marc-andre.ca>
+GITHUB: michaelbishop <michael@michaelsplace.net>
+GITHUB: OyoKooN <nathan@sxnlabs.com>
+GITHUB: paulswartz <paulswartz@gmail.com>
+GITHUB: rdickert <robert.dickert@gmail.com>
+GITHUB: icellan <icellan@icellan.com>
+GITHUB: yeputons <egor.suvorov@gmail.com>
+
+METEOR: avital <avital@thewe.net>
+METEOR: debergalis <matt@meteor.com>
+METEOR: dgreensp <dgreenspan@alum.mit.edu>
+METEOR: estark37 <emily@meteor.com>
+METEOR: estark37 <estark37@gmail.com>
+METEOR: glasser <glasser@meteor.com>
+METEOR: gschmidt <geoff@geoffschmidt.com>
+METEOR: karayu <lele.yu@gmail.com>
+METEOR: n1mmy <nim@meteor.com>
+METEOR: sixolet <naomi@meteor.com>
+METEOR: Slava <slava@meteor.com>
+METEOR: stubailo <sashko@mit.edu>
+METEOR: ekatek <ekate@meteor.com>

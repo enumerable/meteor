@@ -4,13 +4,69 @@
 
 我们已经手工编写了很多单页面 JavaScript 程序了，只用一种语言（JavaScript）和一种数据格式（JSON）来写程序真是一种乐趣，Meteor 提供了我们写这类程序所需要的一切。
 
+{{> whatismeteor }}
 {{> structure }}
 {{> data }}
 {{> reactivity }}
 {{> livehtml }}
 {{> templates }}
 {{> packages_concept }}
+{{> namespacing }}
 {{> deploying }}
+{{> packages_writing }}
+</template>
+
+<template name="whatismeteor">
+
+{{#better_markdown}}
+
+<h2 id="whatismeteor">What is Meteor?</h2>
+
+Meteor is two things:
+
+* A _library of packages_: pre-written, self-contained modules that
+you might need in your app.<br>
+There are about a dozen core Meteor
+packages that most any app will use (for example `webapp`, which
+handles incoming HTTP connections, and `templating`, which lets you
+make HTML templates that automatically update live as data changes).
+Then there are optional packages like `email`, which lets your app
+send emails, or the Meteor Accounts series (`account-password`,
+`accounts-facebook`, `accounts-ui`, and others) which provide a
+full-featured user account system that you can drop right into your
+app. And beyond these "official" packages, there are hundreds of
+community-written packages in [Atmosphere](https://atmosphere.meteor.com/),
+one of which might do just what you need.
+
+* A _command-line tool_ called `meteor`.<br>
+`meteor` is a build tool analogous to `make`, `rake`, or the non-visual parts of
+Visual Studio. It gathers up all of the source files and assets in your
+application, carries out any necessary build steps (such as compiling
+[CoffeeScript](http://coffeescript.org), minifying CSS, building
+[npm](https://npmjs.org/) modules, or generating source maps), fetches the
+packages used by your app, and outputs a standalone, ready-to-run application
+bundle. In development mode it can do all of this interactively, so that
+whenever you change a file you immediately see the changes in your browser. It's
+super easy to use out of the box, but it's also extensible: you can add support
+for new languages and compilers by adding build plugin packages to your app.
+
+The key idea in the Meteor package system is that _everything should
+work identically in the browser and on the server_ (wherever it makes
+sense, of course: browsers can't send email and servers can't capture
+mouse events). Our whole ecosystem has been built from the ground up
+to support this.
+
+{{#note}}
+`meteor` cannot yet fetch packages from Atmosphere. If you are using
+Atmosphere packages you should take a look at
+[Meteorite](http://oortcloud.github.io/meteorite/), a tool that will
+help you download and manage your Atmosphere packages.
+
+In Meteor 1.0, the `meteor` build tool will have full support for
+Atmosphere.
+{{/note}}
+
+{{/better_markdown}}
 </template>
 
 <template name="structure">
@@ -20,9 +76,11 @@
 
 一个 Meteor 应用包括运行在网页浏览器中的 JavaScript，运行在 Meteor 服务器上 Node.js 容器中的 JavaScript 和所有支持的 HTML 片段、CSS 规则以及其他静态文件。Meteor 会自动打包并传送这些不同的部分，你可以很灵活地选择如何在你的文件树中构建这些组件。
 
-服务器上的唯一组件就是 JavaScript，Meteor 会收集除了 `client` 和 `public` 子目录里的所有 JavaScript 文件，并把他们都载入到一个 Node.js 服务器实例中的纤程中。在 Meteor 中，每个请求都会让你的服务器启动一个线程，而非 Node.js 标准的异步回调模式。我们发现线性执行模型更适合标准的 Meteor 服务器程序。
+服务器上的唯一组件就是 JavaScript和在`private`子目录中的文件，Meteor 会收集除了 `client` 、`public`和`private` 子目录里的所有 JavaScript 文件，并把他们都载入到一个 Node.js 服务器实例中的纤程中。在 Meteor 中，每个请求都会让你的服务器启动一个线程，而非 Node.js 标准的异步回调模式。我们发现线性执行模型更适合标准的 Meteor 服务器程序。
 
-在客户端上则有更多的组件需要考虑。Meteor 会为客户端在你的文件树上收集除了 `server` 和 `public` 子目录里的所有 JavaScript 文件。它还会压缩 bundle 的体积并为每个新客户机服务。你可以尽情地使用你所喜欢的目录结构，像把整个应用写进单个 JavaScript 文件中、创建一个文件树嵌入其他文件，亦或介于两者之间的任何结构。
+Meteor收集所有在`private`子目录下的文件并使得这些文件的内容可以通过服务端代码[`Assets`](#assets) API 来获取。`private`子目录下的所有文件对于服务端代码都可以很容易的引用但客户端的代码不行，类似私有的数据文件。
+
+在客户端上则有更多的组件需要考虑。Meteor 会为客户端在你的文件树上收集除了 `server` 、`public`和`private` 子目录里的所有 JavaScript 文件。它还会压缩 bundle 的体积并为每个新客户机服务。你可以尽情地使用你所喜欢的目录结构，像把整个应用写进单个 JavaScript 文件中、创建一个文件树嵌入其他文件，亦或介于两者之间的任何结构。
 
 一些 JavaScript 库只有在被放置于 `client/compatibility` 子目录下才有效。这个目录中的文件在执行时没有被包裹在一个变量作用域中。这意味着每个顶级 `var` 都被定义为全局变量。此外，这些文件会比其他 JavaScript 文件更早在客户端中执行。
 
@@ -31,7 +89,7 @@
 
 像包括密码或者认证机制等那些你不想提供给客户机的敏感代码都应该放在 `server` 目录。
 
-CSS 文件也要全集中在一起：这样客户机就可以收到一个拥有文件树中全部 CSS 的 bundle（除了 `server` 和 `public` 这两个子目录的文件）。
+CSS 文件也要全集中在一起：这样客户机就可以收到一个拥有文件树中全部 CSS 的 bundle（除了 `server` 、`public`和`private` 这两个子目录的文件）。
 
 在开发模式中， JavaScript 和 CSS 文件是分别传送的，这样使 debug 更容易。
 
@@ -41,17 +99,15 @@ CSS 文件也要全集中在一起：这样客户机就可以收到一个拥有�
 
 最后，`public` 文件夹用来放图片、`favicon.ico`、`robots.txt` 和其他文件，Meteor 服务使它们可以被直接访问，就像 Rails 或 Django 项目一样。
 
-你写的应用时最好对文件加载顺序不敏感，例如通过使用 [Meteor.startup](#meteor_startup)、或将那些对载入顺序敏感的代码放到 [智能包](#smartpackages) 中， 可以明确地控制好它们和与之相关的其他包的加载顺序。然后，有时候加载顺序的依赖关系在应用中是无法避免的。应用中的 JavaScript 和 CSS 文件依照以下规则加载：
+你写的应用时最好对文件加载顺序不敏感，例如通过使用 [Meteor.startup](#meteor_startup)、或将那些对载入顺序敏感的代码放到 [packages](#usingpackages) 中， 可以明确地控制好它们和与之相关的其他包的加载顺序。然后，有时候加载顺序的依赖关系在应用中是无法避免的。应用中的 JavaScript 和 CSS 文件依照以下规则加载：
 
-* 应用根目录内 `lib` 文件夹下的文件首先加载。
+* 子目录比父目录先加载，因此最深的子目录里的文件最先被加载，根目录的文件最后被加载。
 
-* 符合 `main.*` 这个格式的文件最后加载。
+* 在同一个目录，按文件名的字母顺序依次被加载。
 
-* 子目录中的文件在母目录中的文件之前加载，即最深层子目录中的文件首先加载（在 `lib` 之后），根目录的文件最后加载（在 `main.*` 之前）。
+* 像上面描述那样整理后，`lib`目录下的文件在其他文件（维持原本的顺序）之前处理。
 
-* 同目录下的文件，按文件名的字母顺序来加载。
-
-这些规则的效果是叠加的，所以对 `lib` 文件夹内的文件也有效，例如 `lib` 文件夹内的文件也要按照文件名的字母排序来加载；同样如果有多个 `main.js` 文件，处于子目录中的先加载。
+* 最后，所有符合 `main.*` 这个格式的文件在其他文件（维持原本的顺序）之后处理。
 
 {{/better_markdown}}
 </template>
@@ -139,6 +195,7 @@ Meteor 使得编写分布式客户机代码如同连接本地数据库一样简�
     var party = { ... };
     Parties.insert(party);
 
+
 如果服务器接受了变更，它会将其应用到数据库中并自动将变更传播给其它订阅了受影响文档的客户机。
 如果服务器拒绝了变更，则更新操作失败，服务端的数据库不会受到影响，其它的客户机也不会进行更新。
 
@@ -147,6 +204,11 @@ Meteor 有一个聪明的机制。当客户机向服务器发起一个写操作�
 
 总而言之，这些技术实现了延迟补偿。客户机持有所需的最新数据，而且不必等待与服务器交换数据。
 当客户机修改数据时，这些修改能在本地立即执行而无需等待服务器的确认；同时，服务器对于变更请求仍然拥有最终定夺的权力。
+
+{{#note}}
+Meteor现在的版本只支持MongoDB，一个流行的文档数据库，本章节使用的例子来自[MongoDB API](http://www.mongodb.org/display/DOCS/Manual)。
+将来的版本将支持其他数据库。
+{{/note}}
 
 <h3 id="dataandsecurity-authentication">认证与用户账户</h3>
 
@@ -158,13 +220,6 @@ Meteor 包含了 [Meteor Accounts](#accounts_api)，一个最先进的认证系�
 Meteor 同时包含了预生成的表单用于常见的任务，例如登录、注册、更改密码和密码重置邮件。
 你仅需要一行代码就能在你的应用中添加 [Accounts UI](#accountsui) 。
 `accounts-ui` 智能包甚至提供了配置向导引导你一步一步的在你的应用中搭建外部登录服务。
-
-{{#note}}
-现今发布的 Meteor 支持 MongoDB，流行的文档数据库，本节中的例子来自
-        [MongoDB API](http://www.mongodb.org/display/DOCS/Manual).
-今后的版本将会包含对其它数据库的支持。
-{{/note}}
-
 
 <h3 id="dataandsecurity-validation">输入验证</h3>
 
@@ -335,7 +390,8 @@ Meteor 会预编译模板，运送它到客户端，然后使它可以在全局 
 在这个实例中，数据来自数据库查询。一旦数据库游标传递给 `#each`，就会
 高效地连接每一台机器，添加和移动 DOM 节点作为新的结果输入查询中。
 
-辅助对象可以带参数，然后它们将收到在 `this` 函数中的当前模板的数据：
+Helpers可以带参数，然后它们将收到在 `this` 函数中的当前模板的数据。注意有些helpers的代码块中会改变上下文（尤其是`each`和`with`）：
+
 
     // in a JavaScript file
     Template.players.leagueIs = function (league) {
@@ -420,31 +476,112 @@ Meteor 会预编译模板，运送它到客户端，然后使它可以在全局 
 
   <h2 id="smartpackages">智能的包</h2>
 
-Meteor 有着异常强大的包系统，你读到的所有功能都已经被实现为标准的 Meteor 包。
+你已经看到的所有功能都是由standard Meteor packages实现的。这是建立在Meteor的异常强大的包之上。这些包能作用于浏览器和服务端，且包含可以扩展的插件。例如`coffeescript` ([CoffeeScript](http://coffeescript.org)compilation) 或 `templating` (compiling HTML templates).
 
-Meteor 的包是智能的：包本身就是 JavaScript 程序。它们可以注入到客户端和服务端，或者在 bundler 中 hook 一个新的函数，所以它们可以用任意方式扩展 Meteor 环境。一些包的例子：
-
-* [coffeescript](#coffeescript) 的包扩展了 bundler，自动编译目录中的 `.coffee` 文件。添加后，你可以用 CoffeeScript 代替 JavaScript 开发你的应用。
-
-* [jQuery](#jquery) 和 [Backbone](#backbone) 的包是 Meteor 客户端预装的 JavaScript 库。你可以通过把 JavaScript 文件复制到目录中得到同样的结果，但添加包是更快的方式。
-
-* [underscore](#underscore) 的包扩展了客户端和服务端环境。
-
-在很多 Meteor 的核心特性被自动作为内置包在每个 Meteor 环境中加载（包含了 Minimongo、Session 对象和反应的 Handlebars 模板）。
 
 你可以在这里 [`meteor list`](#meteorlist) 看到 Meteor 可用包的列表，通过 [`meteor add`](#meteoradd) 添加包到你的项目里，通过 [`meteor remove`](#meteorremove) 移除它们。
 
-在 [Package List](#packages) 这里来看现有包的描述。
+默认所有的应用包含`standard-app-packages`这个包，在这个包自动组装了Meteor的核心栈。为了保持简单，这些核心的包也不会显示在`meteor list`的输出中，但你可以读这里[source code of `standard-app-packages`](https://github.com/meteor/meteor/blob/master/packages/standard-app-packages/package.js)看它们都包括什么（作为Meteor的 pre-1.0，它们可能是会变化的）。如果你希望构建适合你自己习惯的栈，则从你的应用中移除`standard-app-packages`并添加任何你想保持的standard
+packages。
 
-{{#warning}}
-包的 API 是快速变化的并且不会被记录，所以你现在不能制作自己的包。很快就可以。
-{{/warning}}
+除了可以使用Meteor官方发布的包，`meteor list` 和 `meteor add` 也会搜索应用根目录的 `packages` 文件夹。如果你下载了一个来自 Atmosphere 的非官方包你可以把它放在这个目录(非官方命令行工具 [Meteorite](http://oortcloud.github.io/meteorite/))。你也可以把你的应用分解成`packages`的子目录的来方便使用 &mdash; 在Meteor 1.0 之前，Meteor的package格式没有文档并且会有很大的变化，如果你不在乎这些仍然希望自己写package，可以参考 [Writing Packages](#writingpackages)。
 
 {{/better_markdown}}
 </template>
 
 
+<template name="namespacing">
+{{#better_markdown}}
 
+  <h2 id="namespacing">Namespacing</h2>
+
+Meteor's namespacing support makes it easy to write large applications
+in JavaScript. Each package that you use in your app exists in its own
+separate namespace, meaning that it sees only its own global variables
+and any variables provided by the packages that it specifically
+uses. Here's how it works.
+
+When you declare a top-level variable, you have a choice. You can make
+the variable File Scope or Package Scope.
+
+    // File Scope. This variable will be visible only inside this
+    // one file. Other files in this app or package won't see it.
+    var alicePerson = {name: "alice"};
+
+    // Package Scope. This variable is visible to every file inside
+    // of this package or app. The difference is that 'var' is
+    // omitted.
+    bobPerson = {name: "bob"};
+
+Notice that this is just the normal JavaScript syntax for declaring a
+variable that is local or global. Meteor scans your source code for
+global variable assignments and generates a wrapper that makes sure
+that your globals don't escape their appropriate namespace.
+
+In addition to File Scope and Package Scope, there are also
+Exports. An export is a variable that a package makes available to you
+when you use it. For example, the `email` package exports the `Email`
+variable. If your app uses the `email` package (and _only_ if it uses
+the `email` package!) then your app can see `Email` and you can call
+`Email.send`. Most packages have only one export, but some packages
+might have two or three (for example, a package that provides several
+classes that work together).
+
+You see only the exports of the packages that you use directly. If you
+use package A, and package A uses package B, then you only see package
+A's exports. Package B's exports don't "leak" into your namespace just
+because you used package A. This keeps each namespace nice and
+tidy. Each app or package only sees their own globals plus the APIs of
+the packages that they specifically asked for.
+
+When debugging your app, your browser's JavaScript console behaves as
+if it were attached to your app's namespace. You see your app's
+globals and the exports of the packages that your app uses
+directly. You don't see the variables from inside those packages, and
+you don't see the exports of your transitive dependencies (packages
+that aren't used directly by your app, but that are used by packages
+that are used by your app).
+
+If you want to look inside packages from inside your in-browser
+debugger, you've got two options:
+
+* Set a breakpoint inside package code. While stopped on that
+  breakpoint, the console will be in the package's namespace. You'll
+  see the package's package-scope variables, imports, and also any
+  file-scope variables for the file you're stopped in.
+
+* If a package `foo` is included in your app, regardless of whether
+  your app uses it directly, its exports are available in
+  `Package.foo`. For example, if the `email` package is loaded, then
+  you can access `Package.email.Email.send` even from namespaces that
+  don't use the `email` package directly.
+
+When declaring functions, keep in mind that `function x () {}` is just
+shorthard for `var x = function () {}` in JavaScript. Consider these
+examples:
+
+    // This is the same as 'var x = function () ...'. So x() is
+    // file-scope and can be called only from within this one file.
+    function x () { ... }
+
+    // No 'var', so x() is package-scope and can be called from
+    // any file inside this app or package.
+    x = function () { ... }
+
+{{#note}}
+Technically speaking, globals in an app (as opposed to in a package)
+are actually true globals. They can't be captured in a scope that is
+private to the app code, because that would mean that they wouldn't be
+visible in the console during debugging! This means that app globals
+actually end up being visible in packages. That should never be a
+problem for properly written package code (since the app globals will
+still be properly shadowed by declarations in the packages). You
+certainly shouldn't depend on this quirk, and in the future Meteor may
+check for it and throw an error if you do.
+{{/note}}
+
+{{/better_markdown}}
+</template>
 
 
 <template name="deploying">
@@ -484,9 +621,10 @@ Meteor 会保存现有数据并且刷新代码。
     $ meteor bundle myapp.tgz
 
 这个命令会以 tarball 档案的形式创建一个完全独立的 Node.js 程序。想要运行
-这个程序，你需要安装 Node.js 0.8 和一个 MongoDB 服务器。然后你可以通过
+这个程序，你需要安装 Node.js 0.10 和一个 MongoDB 服务器。(当前版本的Meteor在Node 0.10.25上测试过；老版本的有一些问题可能会导致生产服务器挂掉)然后你可以通过
 调用 Node.js、指定程序监听的端口和 MongoDB 的路径来运行这个程序。如果你没有
 MongoDB 服务器，我们可以为你推荐我们朋友的 [MongoHQ](http://mongohq.com)。
+
 
     $ PORT=3000 MONGO_URL=mongodb://localhost:27017/myapp node bundle/main.js
 
@@ -496,10 +634,114 @@ MongoDB 服务器，我们可以为你推荐我们朋友的 [MongoHQ](http://mon
 目前，打包好的程序只能运行在创建它的平台上。想要运行在另一个平台上，你需要
 重新打包本地包。先确认你是否有 `npm`，然后运行：
 
-    $ cd bundle/server/node_modules
+    $ cd bundle/programs/server/node_modules
     $ rm -r fibers
-    $ npm install fibers@1.0.0
+    $ npm install fibers@1.0.1
 {{/warning}}
+
+{{/better_markdown}}
+</template>
+
+
+<template name="packages_writing">
+{{#better_markdown}}
+
+  <h2 id="writingpackages">Writing packages</h2>
+
+The Meteor package format isn't officially documented and will change
+before Meteor 1.0. But that hasn't stopped people like you from
+creating hundreds of packages by reading the source code of existing
+packages and following the model. If you do decide to create your own
+packages, you will have to do some detective work, but here are some
+quick tips:
+
+* A package is simply a directory with a `package.js` file in it. Look in the
+  [`packages` directory of the Meteor source
+  tree](https://github.com/meteor/meteor/tree/master/packages/) for example
+  `package.js` files. The format and name of the `package.js` file will change
+  significantly before Meteor 1.0, but the functionality will be basically the
+  same even though the syntax is different, so it will be easy to port your
+  code.
+
+* Packages explicitly list all of their source files using `api.add_files`, and
+  the files are loaded exactly in the order specified. (This is different from
+  apps, where Meteor scans a directory tree to find the source files.)  Don't
+  forget to include any build plugin packages (such as `coffeescript` or, if
+  using HTML templates, `templating`) that you require.
+
+* Exporting a symbol from your package (see
+  [Namespacing](#namespacing)) is accomplished with an `api.export` call
+  from inside your `on_use` handler.
+
+* An esoteric point about exports: they are not lvalues. You can't set
+  an exported variable to a new value after exporting it. If you
+  export `a = {name: 'alice'}` then you can change `a.name` anytime
+  you want, but if after startup you set `a` to a whole new object
+  then the packages that import `a` won't see the change. Since your
+  exports are most always objects or functions, this is hardly ever an
+  issue.
+
+* Packages can use [npm modules](https://npmjs.org/). Use `Npm.depends` in your
+  `package.js` to list the npm modules that you need and the specific
+  versions that you want to use. Then use `Npm.require` inside your
+  package to pull in the modules when you need them. Meteor strives to
+  have 100% repeatable builds so that everyone on your team is always
+  running the same code, and that's why you must explicitly lock your
+  npm dependencies to specific versions. Behind the scenes, Meteor
+  will use `npm shrinkwrap` to also lock down the versions of the
+  transitive dependencies of all of the npm modules that you use.
+
+* Whenever your package changes, Meteor will rebuild it (compiling
+  non-JavaScript source files, fetching npm dependencies, constructing
+  namespace wrappers, and so on). The built package will be cached and
+  rebuilt only when a source file changes (tracked by SHA1) or when
+  other dependencies such as build plugins change. To force a rebuild
+  you can use the undocumented command `meteor rebuild-all`, but this
+  should never be necessary (if it is, please send a
+  [bug report](https://github.com/meteor/meteor/blob/devel/Contributing.md#filing-bug-reports)!).
+
+* Build plugins are created with `_transitional_registerBuildPlugin`,
+  an API that is very much in flux. See the `coffeescript` package for
+  an example. Build plugins are fully-fledged Meteor programs in their
+  own right and have their own namespace, package dependencies, source
+  files and npm requirements. The old `register_extension` API is
+  removed.
+
+* It is possible to create weak dependencies between packages. If
+  package A has a weak dependency on package B, it means that
+  including A in an app does not force B to be included too &mdash;
+  but, if B _is_ included, say by the app developer or by another
+  package, then B will load before A. You can use this to make
+  packages that optionally integrate with or enhance other packages if
+  those packages are present. To create a weak dependency, pass
+  `{weak: true}` as the third argument to `api.use`. When you weakly
+  depend on a package you don't see its exports. You can detect if
+  the possibly-present weakly-depended-on package is there by seeing
+  if `Package.foo` exists, and get its exports from the same place.
+
+* It is also possible to create unordered dependencies by passing
+  `{unordered: true}`. An unordered dependency is the exact opposite
+  of a weak dependency. If A has an unordered dependency on B, then
+  including A forces B to be included as well, but doesn't require B
+  to load before A. This is occasionally useful for resolving circular
+  dependencies.
+
+* The build system also supports package implication. If package A
+  implies package B, then it means that when someone depends on
+  package A, it's as if they also depended on package B as well. In
+  particular, they get B's exports. This is done with `api.imply` and
+  can be used to create umbrella packages such as
+  `standard-app-packages` that are a shortcut for pulling in a set of
+  packages, or it can be helpful in factoring common code out of a set
+  of packages as with `accounts-base`.
+
+* The build system understands the idea of native code and has a
+  system of architecture names to ensure that packages that are
+  specific to one architecture aren't run on the wrong
+  architecture. For example, if you include an npm module that has a
+  native extension, your built Meteor package will be specific to your
+  machine architecture, but if not your built Meteor package will be
+  portable.
 
 {{/better_markdown}}
 </template>
