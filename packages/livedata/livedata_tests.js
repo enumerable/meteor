@@ -32,8 +32,7 @@ if (Meteor.isServer) {
   Tinytest.add("livedata - version negotiation", function (test) {
     var versionCheck = function (clientVersions, serverVersions, expected) {
       test.equal(
-        Meteor._LivedataServer._calculateVersion(clientVersions,
-                                                 serverVersions),
+        LivedataTest.calculateVersion(clientVersions, serverVersions),
         expected);
     };
 
@@ -125,6 +124,8 @@ testAsyncMulti("livedata - basic method invocation", [
   echoTest({$date: 30}), // literal
   echoTest({$literal: {$date: 30}}),
   echoTest(12),
+  echoTest(Infinity),
+  echoTest(-Infinity),
 
   function (test, expect) {
     if (Meteor.isServer)
@@ -215,7 +216,17 @@ testAsyncMulti("livedata - basic method invocation", [
     if (Meteor.isServer) {
       var threw = false;
       try {
-        Meteor.call("exception", "both", true);
+        Meteor.call("exception", "both", {intended: true});
+      } catch (e) {
+        threw = true;
+        test.equal(e.error, 999);
+        test.equal(e.reason, "Client-visible test exception");
+      }
+      test.isTrue(threw);
+      threw = false;
+      try {
+        Meteor.call("exception", "both", {intended: true,
+                                          throwThroughFuture: true});
       } catch (e) {
         threw = true;
         test.equal(e.error, 999);
@@ -226,12 +237,18 @@ testAsyncMulti("livedata - basic method invocation", [
 
     if (Meteor.isClient) {
       test.equal(
-        Meteor.call("exception", "both", true,
+        Meteor.call("exception", "both", {intended: true},
                     expect(failure(test, 999,
                                    "Client-visible test exception"))),
         undefined);
       test.equal(
-        Meteor.call("exception", "server", true,
+        Meteor.call("exception", "server", {intended: true},
+                    expect(failure(test, 999,
+                                   "Client-visible test exception"))),
+        undefined);
+      test.equal(
+        Meteor.call("exception", "server", {intended: true,
+                                            throwThroughFuture: true},
                     expect(failure(test, 999,
                                    "Client-visible test exception"))),
         undefined);
@@ -287,9 +304,9 @@ testAsyncMulti("livedata - compound methods", [
   }
 ]);
 
-// Replaces the LivedataConnection's `_livedata_data` method to push
-// incoming messages on a given collection to an array. This can be
-// used to verify that the right data is sent on the wire
+// Replaces the Connection's `_livedata_data` method to push incoming
+// messages on a given collection to an array. This can be used to
+// verify that the right data is sent on the wire
 //
 // @param messages {Array} The array to which to append the messages
 // @return {Function} A function to call to undo the eavesdropping
@@ -321,7 +338,7 @@ if (Meteor.isClient) {
     function(test, expect) {
       var messages = [];
       var undoEavesdrop = eavesdropOnCollection(
-        Meteor.default_connection, "objectsWithUsers", messages);
+        Meteor.connection, "objectsWithUsers", messages);
 
       // A helper for testing incoming set and unset messages
       // XXX should this be extracted as a general helper together with
@@ -347,6 +364,10 @@ if (Meteor.isClient) {
                    expectedNamesInCollection);
         messages.length = 0; // clear messages without creating a new object
       };
+
+      // make sure we're not already logged in. can happen if accounts
+      // tests fail oddly.
+      Meteor.apply("setUserId", [null], {wait: true}, expect(function () {}));
 
       Meteor.subscribe("objectsWithUsers", expect(function() {
         expectMessages(1, 0, ["owned by none"]);
@@ -389,6 +410,8 @@ if (Meteor.isClient) {
         test.isFalse(err);
         test.equal(result, "100");
       }));
+      // clean up
+      Meteor.apply("setUserId", [null], {wait: true}, expect(function () {}));
     }
   ]);
 }
@@ -505,8 +528,8 @@ if (Meteor.isClient) {
   testAsyncMulti("livedata - publisher errors", (function () {
     // Use a separate connection so that we can safely check to see if
     // conn._subscriptions is empty.
-    var conn = new Meteor._LivedataConnection('/',
-                                              {reloadWithOutstanding: true});
+    var conn = new LivedataTest.Connection('/',
+                                            {reloadWithOutstanding: true});
     var collName = Random.id();
     var coll = new Meteor.Collection(collName, {connection: conn});
     var errorFromRerun;
@@ -572,7 +595,7 @@ if (Meteor.isClient) {
         // sub.stop does NOT call onError.
         test.isFalse(gotErrorFromStopper);
         test.equal(_.size(conn._subscriptions), 0);  // white-box test
-        conn._stream.forceDisconnect();
+        conn._stream.disconnect({_permanent: true});
       }
     ];})());
 
@@ -601,6 +624,8 @@ if (Meteor.isClient) {
     ]);
 }
 
+var selfUrl = Meteor.isServer
+      ? Meteor.absoluteUrl() : Meteor._relativeToSiteRootUrl('/');
 
 if (Meteor.isServer) {
   Meteor.methods({
@@ -614,7 +639,7 @@ if (Meteor.isServer) {
   testAsyncMulti("livedata - connect works from both client and server", [
     function (test, expect) {
       var self = this;
-      self.conn = Meteor.connect(Meteor.absoluteUrl());
+      self.conn = DDP.connect(selfUrl);
       pollUntil(expect, function () {
         return self.conn.status().connected;
       }, 10000);
@@ -638,7 +663,7 @@ if (Meteor.isServer) {
     testAsyncMulti("livedata - method call on server blocks in a fiber way", [
       function (test, expect) {
         var self = this;
-        self.conn = Meteor.connect(Meteor.absoluteUrl());
+        self.conn = DDP.connect(selfUrl);
         pollUntil(expect, function () {
           return self.conn.status().connected;
         }, 10000);
@@ -658,13 +683,38 @@ if (Meteor.isServer) {
   testAsyncMulti("livedata - connect fails to unknown place", [
     function (test, expect) {
       var self = this;
-      self.conn = Meteor.connect("example.com");
+      self.conn = DDP.connect("example.com");
       Meteor.setTimeout(expect(function () {
         test.isFalse(self.conn.status().connected, "Not connected");
       }), 500);
     }
   ]);
 })();
+
+if (Meteor.isServer) {
+  Meteor.publish("publisherCloning", function () {
+    var self = this;
+    var fields = {x: {y: 42}};
+    self.added("publisherCloning", "a", fields);
+    fields.x.y = 43;
+    self.changed("publisherCloning", "a", fields);
+    self.ready();
+  });
+} else {
+  var PublisherCloningCollection = new Meteor.Collection("publisherCloning");
+  testAsyncMulti("livedata - publish callbacks clone", [
+    function (test, expect) {
+      Meteor.subscribe("publisherCloning", {normal: 1}, {
+        onReady: expect(function () {
+          test.equal(PublisherCloningCollection.findOne(), {
+            _id: "a",
+            x: {y: 43}});
+        }),
+        onError: failure()
+      });
+    }
+  ]);
+}
 
 
 // XXX some things to test in greater detail:

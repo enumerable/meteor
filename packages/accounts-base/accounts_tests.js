@@ -107,7 +107,7 @@ Tinytest.add('accounts - insertUserDoc username', function (test) {
   );
   var userOut = Meteor.users.findOne(result.id);
 
-  test.equal(typeof userOut.createdAt, 'number');
+  test.equal(typeof userOut.createdAt, 'object');
   test.equal(userOut.profile.name, 'Foo Bar');
   test.equal(userOut.username, userIn.username);
 
@@ -140,7 +140,7 @@ Tinytest.add('accounts - insertUserDoc email', function (test) {
   );
   var userOut = Meteor.users.findOne(result.id);
 
-  test.equal(typeof userOut.createdAt, 'number');
+  test.equal(typeof userOut.createdAt, 'object');
   test.equal(userOut.profile.name, 'Foo Bar');
   test.equal(userOut.emails, userIn.emails);
 
@@ -172,9 +172,133 @@ Tinytest.add('accounts - insertUserDoc email', function (test) {
       {}, {emails: [{address: email3}]}
   );
   var user3 = Meteor.users.findOne(result3.id);
-  test.equal(typeof user3.createdAt, 'number');
+  test.equal(typeof user3.createdAt, 'object');
 
   // cleanup
   Meteor.users.remove(result.id);
   Meteor.users.remove(result3.id);
 });
+
+// More token expiration tests are in accounts-password
+Tinytest.addAsync('accounts - expire numeric token', function (test, onComplete) {
+  var userIn = { username: Random.id() };
+  var result = Accounts.insertUserDoc({ profile: {
+    name: 'Foo Bar'
+  } }, userIn);
+  var date = new Date(new Date() - 5000);
+  Meteor.users.update(result.id, {
+    $set: {
+      "services.resume.loginTokens": [{
+        hashedToken: Random.id(),
+        when: date
+      }, {
+        hashedToken: Random.id(),
+        when: +date
+      }]
+    }
+  });
+  var observe = Meteor.users.find(result.id).observe({
+    changed: function (newUser) {
+      if (newUser.services && newUser.services.resume &&
+          _.isEmpty(newUser.services.resume.loginTokens)) {
+        observe.stop();
+        onComplete();
+      }
+    }
+  });
+  Accounts._expireTokens(new Date(), result.id);
+});
+
+
+// Login tokens used to be stored unhashed in the database.  We want
+// to make sure users can still login after upgrading.
+
+var userWithUnhashedLoginToken = function () {
+  var result = Accounts.insertUserDoc({}, {username: Random.id()});
+
+  // Construct an old-style unhashed login token.
+  var stampedToken = Accounts._generateStampedLoginToken();
+
+  Meteor.users.update(
+    result.id,
+    {$push: {'services.resume.loginTokens': stampedToken}}
+  );
+
+  // Return result, as if from Accounts.insertUserDoc.
+  result.token = stampedToken.token;
+  result.tokenExpires = Accounts._tokenExpiration(stampedToken.when);
+  return result;
+};
+
+Tinytest.addAsync('accounts - login token', function (test, onComplete) {
+  // Test that we can login when the database contains a leftover
+  // old style unhashed login token.
+  var user1 = userWithUnhashedLoginToken();
+  var connection = DDP.connect(Meteor.absoluteUrl());
+  connection.call('login', {resume: user1.token});
+  connection.disconnect();
+
+  // Steal the unhashed token from the database and use it to login.
+  // This is a sanity check so that when we *can't* login with a
+  // stolen *hashed* token, we know it's not a problem with the test.
+  var user2 = userWithUnhashedLoginToken();
+  var stolenToken = Meteor.users.findOne(user2.id).services.resume.loginTokens[0].token;
+  test.isTrue(stolenToken);
+  connection = DDP.connect(Meteor.absoluteUrl());
+  connection.call('login', {resume: stolenToken});
+  connection.disconnect();
+
+  // Now do the same thing, this time with a stolen hashed token.
+  var user3 = Accounts.insertUserDoc({generateLoginToken: true}, {username: Random.id()});
+  stolenToken = Meteor.users.findOne(user3.id).services.resume.loginTokens[0].hashedToken;
+  test.isTrue(stolenToken);
+  connection = DDP.connect(Meteor.absoluteUrl());
+  // evil plan foiled
+  test.throws(
+    function () {
+      connection.call('login', {resume: stolenToken});
+    },
+    /You\'ve been logged out by the server/
+  );
+  connection.disconnect();
+
+  // Old style unhashed tokens are replaced by hashed tokens when
+  // encountered.  This means that after someone logins once, the
+  // old unhashed token is no longer available to be stolen.
+  var user4 = userWithUnhashedLoginToken();
+  connection = DDP.connect(Meteor.absoluteUrl());
+  connection.call('login', {resume: user4.token});
+  connection.disconnect();
+
+  // The token is no longer available to be stolen.
+  stolenToken = Meteor.users.findOne(user4.id).services.resume.loginTokens[0].token;
+  test.isFalse(stolenToken);
+
+  // After the upgrade, the client can still login with their login token.
+  connection = DDP.connect(Meteor.absoluteUrl());
+  connection.call('login', {resume: user4.token});
+  connection.disconnect();
+
+  onComplete();
+});
+
+Tinytest.addAsync(
+  'accounts - connection data cleaned up',
+  function (test, onComplete) {
+    makeTestConnection(
+      test,
+      function (clientConn, serverConn) {
+        // onClose callbacks are called in order, so we run after the
+        // close callback in accounts.
+        serverConn.onClose(function () {
+          test.isFalse(Accounts._getAccountData(serverConn.id, 'connection'));
+          onComplete();
+        });
+
+        test.isTrue(Accounts._getAccountData(serverConn.id, 'connection'));
+        serverConn.close();
+      },
+      onComplete
+    );
+  }
+);

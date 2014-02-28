@@ -1,5 +1,3 @@
-var app = __meteor_bootstrap__.app;
-var bundle = __meteor_bootstrap__.bundle;
 var crypto = Npm.require('crypto');
 var fs = Npm.require('fs');
 var path = Npm.require('path');
@@ -8,6 +6,7 @@ var knownBrowsers = [
   'android',
   'chrome',
   'chromium',
+  'chromeMobileIOS',
   'firefox',
   'ie',
   'mobileSafari',
@@ -18,6 +17,7 @@ var browsersEnabledByDefault = [
   'android',
   'chrome',
   'chromium',
+  'chromeMobileIOS',
   'ie',
   'mobileSafari',
   'safari'
@@ -42,10 +42,9 @@ Meteor.AppCache = {
       }
       else if (option === 'onlineOnly') {
         _.each(value, function (urlPrefix) {
-          Meteor._routePolicy.declare(urlPrefix, 'static-online');
+          RoutePolicy.declare(urlPrefix, 'static-online');
         });
-      }
-      else {
+      } else {
         throw new Error('Invalid AppCache config option: ' + option);
       }
     });
@@ -56,14 +55,14 @@ var browserEnabled = function(request) {
   return enabledBrowsers[request.browser.name];
 };
 
-__meteor_bootstrap__.htmlAttributeHooks.push(function (request) {
+WebApp.addHtmlAttributeHook(function (request) {
   if (browserEnabled(request))
     return 'manifest="/app.manifest"';
   else
     return null;
 });
 
-app.use(function(req, res, next) {
+WebApp.connectHandlers.use(function(req, res, next) {
   if (req.url !== '/app.manifest') {
     return next();
   }
@@ -78,41 +77,43 @@ app.use(function(req, res, next) {
   // use").  Returning a 404 gets the browser to really turn off the
   // app cache.
 
-  if (!browserEnabled(__meteor_bootstrap__.categorizeRequest(req))) {
+  if (!browserEnabled(WebApp.categorizeRequest(req))) {
     res.writeHead(404);
     res.end();
     return;
   }
+
+  var manifest = "CACHE MANIFEST\n\n";
 
   // After the browser has downloaded the app files from the server and
   // has populated the browser's application cache, the browser will
   // *only* connect to the server and reload the application if the
   // *contents* of the app manifest file has changed.
   //
-  // So we have to ensure that if any static client resources change,
-  // something changes in the manifest file.  We compute a hash of
-  // everything that gets delivered to the client during the initial
-  // web page load, and include that hash as a comment in the app
-  // manifest.  That way if anything changes, the comment changes, and
-  // the browser will reload resources.
+  // So to ensure that the client updates if client resources change,
+  // include a hash of client resources in the manifest.
 
-  var hash = crypto.createHash('sha1');
-  hash.update(JSON.stringify(__meteor_runtime_config__), 'utf8');
-  _.each(bundle.manifest, function (resource) {
-    if (resource.where === 'client' || resource.where === 'internal') {
-      hash.update(resource.hash);
-    }
-  });
-  var digest = hash.digest('hex');
+  manifest += "# " + WebApp.clientHash + "\n";
 
-  var manifest = "CACHE MANIFEST\n\n";
-  manifest += '# ' + digest + "\n\n";
+  // When using the autoupdate package, also include
+  // AUTOUPDATE_VERSION.  Otherwise the client will get into an
+  // infinite loop of reloads when the browser doesn't fetch the new
+  // app HTML which contains the new version, and autoupdate will
+  // reload again trying to get the new code.
+
+  if (Package.autoupdate) {
+    var version = Package.autoupdate.Autoupdate.autoupdateVersion;
+    if (version !== WebApp.clientHash)
+      manifest += "# " + version + "\n";
+  }
+
+  manifest += "\n";
 
   manifest += "CACHE:" + "\n";
   manifest += "/" + "\n";
-  _.each(bundle.manifest, function (resource) {
+  _.each(WebApp.clientProgram.manifest, function (resource) {
     if (resource.where === 'client' &&
-        ! Meteor._routePolicy.classify(resource.url)) {
+        ! RoutePolicy.classify(resource.url)) {
       manifest += resource.url;
       // If the resource is not already cacheable (has a query
       // parameter, presumably with a hash or version of some sort),
@@ -139,9 +140,9 @@ app.use(function(req, res, next) {
   // request to the server and have the asset served from cache by
   // specifying the full URL with hash in their code (manually, with
   // some sort of URL rewriting helper)
-  _.each(bundle.manifest, function (resource) {
+  _.each(WebApp.clientProgram.manifest, function (resource) {
     if (resource.where === 'client' &&
-        ! Meteor._routePolicy.classify(resource.url) &&
+        ! RoutePolicy.classify(resource.url) &&
         !resource.cacheable) {
       manifest += resource.url + " " + resource.url +
         "?" + resource.hash + "\n";
@@ -156,8 +157,8 @@ app.use(function(req, res, next) {
   manifest += "/app.manifest" + "\n";
   _.each(
     [].concat(
-      Meteor._routePolicy.urlPrefixesFor('network'),
-      Meteor._routePolicy.urlPrefixesFor('static-online')
+      RoutePolicy.urlPrefixesFor('network'),
+      RoutePolicy.urlPrefixesFor('static-online')
     ),
     function (urlPrefix) {
       manifest += urlPrefix + "\n";
@@ -175,8 +176,8 @@ app.use(function(req, res, next) {
 
 var sizeCheck = function() {
   var totalSize = 0;
-  _.each(bundle.manifest, function (resource) {
-    if (resource.where === 'client') {
+  _.each(WebApp.clientProgram.manifest, function (resource) {
+    if (resource.cacheable && resource.where === 'client') {
       totalSize += resource.size;
     }
   });

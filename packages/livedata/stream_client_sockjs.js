@@ -1,8 +1,11 @@
 // @param url {String} URL to Meteor app
 //   "http://subdomain.meteor.com/" or "/" or
 //   "ddp+sockjs://foo-**.meteor.com/sockjs"
-Meteor._DdpClientStream = function (url) {
+LivedataTest.ClientStream = function (url, options) {
   var self = this;
+  self.options = _.extend({
+    retry: true
+  }, options);
   self._initCommon();
 
   //// Constants
@@ -20,8 +23,6 @@ Meteor._DdpClientStream = function (url) {
   self.rawUrl = url;
   self.socket = null;
 
-  self.sent_update_available = false;
-
   self.heartbeatTimer = null;
 
   // Listen to global 'online' event if we are running in a browser.
@@ -34,7 +35,7 @@ Meteor._DdpClientStream = function (url) {
   self._launchConnection();
 };
 
-_.extend(Meteor._DdpClientStream.prototype, {
+_.extend(LivedataTest.ClientStream.prototype, {
 
   // data is a utf8 string. Data sent while not connected is dropped on
   // the floor, and it is up the user of this API to retransmit lost
@@ -46,7 +47,13 @@ _.extend(Meteor._DdpClientStream.prototype, {
     }
   },
 
-  _connected: function (welcome_message) {
+  // Changes where this connection points
+  _changeUrl: function (url) {
+    var self = this;
+    self.rawUrl = url;
+  },
+
+  _connected: function () {
     var self = this;
 
     if (self.connectionTimer) {
@@ -58,24 +65,6 @@ _.extend(Meteor._DdpClientStream.prototype, {
       // already connected. do nothing. this probably shouldn't happen.
       return;
     }
-
-    // inspect the welcome data and decide if we have to reload
-    try {
-      var welcome_data = JSON.parse(welcome_message);
-    } catch (err) {
-      Meteor._debug("DEBUG: malformed welcome packet", welcome_message);
-    }
-
-    if (welcome_data && welcome_data.server_id) {
-      if (__meteor_runtime_config__.serverId &&
-          __meteor_runtime_config__.serverId !== welcome_data.server_id &&
-          !self.sent_update_available) {
-        self.sent_update_available = true;
-        _.each(self.eventCallbacks.update_available,
-               function (callback) { callback(); });
-      }
-    } else
-      Meteor._debug("DEBUG: invalid welcome packet", welcome_data);
 
     // update status
     self.currentStatus.status = "connected";
@@ -95,7 +84,7 @@ _.extend(Meteor._DdpClientStream.prototype, {
     self._clearConnectionAndHeartbeatTimers();
     if (self.socket) {
       self.socket.onmessage = self.socket.onclose
-        = self.socket.onerror = function () {};
+        = self.socket.onerror = self.socket.onheartbeat = function () {};
       self.socket.close();
       self.socket = null;
     }
@@ -158,23 +147,21 @@ _.extend(Meteor._DdpClientStream.prototype, {
     var self = this;
     self._cleanup(); // cleanup the old socket, if there was one.
 
+    var options = _.extend({
+      protocols_whitelist:self._sockjsProtocolsWhitelist()
+    }, self.options._sockjsOptions);
+
     // Convert raw URL to SockJS URL each time we open a connection, so that we
     // can connect to random hostnames and get around browser per-host
     // connection limits.
-    self.socket = new SockJS(
-      Meteor._DdpClientStream._toSockjsUrl(self.rawUrl),
-      undefined, {
-        debug: false, protocols_whitelist: self._sockjsProtocolsWhitelist()
-      });
+    self.socket = new SockJS(toSockjsUrl(self.rawUrl), undefined, options);
+    self.socket.onopen = function (data) {
+      self._connected();
+    };
     self.socket.onmessage = function (data) {
       self._heartbeat_received();
 
-      // first message we get when we're connecting goes to _connected,
-      // which connects us. All subsequent messages (while connected) go to
-      // the callback.
-      if (self.currentStatus.status === "connecting")
-        self._connected(data.data);
-      else if (self.currentStatus.connected)
+      if (self.currentStatus.connected)
         _.each(self.eventCallbacks.message, function (callback) {
           callback(data.data);
         });

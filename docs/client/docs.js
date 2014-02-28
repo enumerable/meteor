@@ -47,10 +47,17 @@ Meteor.startup(function () {
   }
 
   var ignore_waypoints = false;
-  $('body').delegate('h1, h2, h3', 'waypoint.reached', function (evt, dir) {
+  var lastTimeout = null;
+  $('h1, h2, h3').waypoint(function (evt, dir) {
     if (!ignore_waypoints) {
       var active = (dir === "up") ? this.prev : this;
-      Session.set("section", active.id);
+      if (active.id) {
+        if (lastTimeout)
+          Meteor.clearTimeout(lastTimeout);
+        lastTimeout = Meteor.setTimeout(function () {
+          Session.set("section", active.id);
+        }, 200);
+      }
     }
   });
 
@@ -91,13 +98,16 @@ var toc = [
     "Resources"
   ],
   "Concepts", [
+    "What is Meteor?",
     "Structuring your app",
     "Data and security",
     "Reactivity",
     "Live HTML",
     "Templates",
-    "Smart packages",
-    "Deploying"
+    "Using packages",
+    "Namespacing",
+    "Deploying",
+    "Writing packages"
   ],
 
   "API", [
@@ -119,7 +129,8 @@ var toc = [
         {instance: "this", name: "ready", id: "publish_ready"},
         {instance: "this", name: "onStop", id: "publish_onstop"},
         {instance: "this", name: "error", id: "publish_error"},
-        {instance: "this", name: "stop", id: "publish_stop"}
+        {instance: "this", name: "stop", id: "publish_stop"},
+        {instance: "this", name: "connection", id: "publish_connection"}
       ],
       "Meteor.subscribe"
     ],
@@ -129,7 +140,8 @@ var toc = [
         {instance: "this", name: "userId", id: "method_userId"},
         {instance: "this", name: "setUserId", id: "method_setUserId"},
         {instance: "this", name: "isSimulation", id: "method_issimulation"},
-        {instance: "this", name: "unblock", id: "method_unblock"}
+        {instance: "this", name: "unblock", id: "method_unblock"},
+        {instance: "this", name: "connection", id: "method_connection"}
       ],
       "Meteor.Error",
       "Meteor.call",
@@ -139,7 +151,9 @@ var toc = [
     {name: "Server connections", id: "connections"}, [
       "Meteor.status",
       "Meteor.reconnect",
-      "Meteor.connect"
+      "Meteor.disconnect",
+      "Meteor.onConnection",
+      "DDP.connect"
     ],
 
     {name: "Collections", id: "collections"}, [
@@ -148,6 +162,7 @@ var toc = [
         {instance: "collection", name: "findOne"},
         {instance: "collection", name: "insert"},
         {instance: "collection", name: "update"},
+        {instance: "collection", name: "upsert"},
         {instance: "collection", name: "remove"},
         {instance: "collection", name: "allow"},
         {instance: "collection", name: "deny"}
@@ -184,13 +199,9 @@ var toc = [
       "Meteor.users",
       "Meteor.loggingIn",
       "Meteor.logout",
+      "Meteor.logoutOtherClients",
       "Meteor.loginWithPassword",
-      {name: "Meteor.loginWithFacebook", id: "meteor_loginwithexternalservice"},
-      {name: "Meteor.loginWithGithub", id: "meteor_loginwithexternalservice"},
-      {name: "Meteor.loginWithGoogle", id: "meteor_loginwithexternalservice"},
-      {name: "Meteor.loginWithMeetup", id: "meteor_loginwithexternalservice"},
-      {name: "Meteor.loginWithTwitter", id: "meteor_loginwithexternalservice"},
-      {name: "Meteor.loginWithWeibo", id: "meteor_loginwithexternalservice"},
+      {name: "Meteor.loginWith<Service>", id: "meteor_loginwithexternalservice"},
       {type: "spacer"},
 
       {name: "{{currentUser}}", id: "template_currentuser"},
@@ -297,23 +308,27 @@ var toc = [
       {name: "EJSON.isBinary", id: "ejson_is_binary"},
       {name: "EJSON.addType", id: "ejson_add_type"},
       [
-        {instance: "instance", id: "ejson_type_clone", name: "clone"},
-        {instance: "instance", id: "ejson_type_equals", name: "equals"},
         {instance: "instance", id: "ejson_type_typeName", name: "typeName"},
-        {instance: "instance", id: "ejson_type_toJSONValue", name: "toJSONValue"}
+        {instance: "instance", id: "ejson_type_toJSONValue", name: "toJSONValue"},
+        {instance: "instance", id: "ejson_type_clone", name: "clone"},
+        {instance: "instance", id: "ejson_type_equals", name: "equals"}
       ]
     ],
 
 
-    "Meteor.http", [
-      "Meteor.http.call",
-      {name: "Meteor.http.get", id: "meteor_http_get"},
-      {name: "Meteor.http.post", id: "meteor_http_post"},
-      {name: "Meteor.http.put", id: "meteor_http_put"},
-      {name: "Meteor.http.del", id: "meteor_http_del"}
+    "HTTP", [
+      "HTTP.call",
+      {name: "HTTP.get"},
+      {name: "HTTP.post"},
+      {name: "HTTP.put"},
+      {name: "HTTP.del"}
     ],
     "Email", [
       "Email.send"
+    ],
+    {name: "Assets", id: "assets"}, [
+      {name: "Assets.getText", id: "assets_getText"},
+      {name: "Assets.getBinary", id: "assets_getBinary"}
     ]
   ],
 
@@ -324,6 +339,7 @@ var toc = [
     "audit-argument-checks",
     "backbone",
     "bootstrap",
+    "browser-policy",
     "coffeescript",
     "d3",
     "force-ssl",

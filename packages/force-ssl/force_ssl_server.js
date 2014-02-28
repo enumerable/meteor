@@ -4,10 +4,10 @@
 // an approach similar to overshadowListeners in
 // https://github.com/sockjs/sockjs-node/blob/cf820c55af6a9953e16558555a31decea554f70e/src/utils.coffee
 
-var app = __meteor_bootstrap__.app;
-var oldAppListeners = app.listeners('request').slice(0);
-app.removeAllListeners('request');
-app.addListener('request', function (req, res) {
+var httpServer = WebApp.httpServer;
+var oldHttpServerListeners = httpServer.listeners('request').slice(0);
+httpServer.removeAllListeners('request');
+httpServer.addListener('request', function (req, res) {
 
   // allow connections if they have been handled w/ ssl already
   // (either by us or by a proxy) OR the connection is entirely over
@@ -22,11 +22,12 @@ app.addListener('request', function (req, res) {
   // Determine if the connection is only over localhost. Both we
   // received it on localhost, and all proxies involved received on
   // localhost.
+  var localhostRegexp = /^\s*(127\.0\.0\.1|::1)\s*$/;
   var isLocal = (
-    remoteAddress === "127.0.0.1" &&
+    localhostRegexp.test(remoteAddress) &&
       (!req.headers['x-forwarded-for'] ||
        _.all(req.headers['x-forwarded-for'].split(','), function (x) {
-         return /\s*127\.0\.0\.1\s*/.test(x);
+         return localhostRegexp.test(x);
        })));
 
   // Determine if the connection was over SSL at any point. Either we
@@ -56,8 +57,8 @@ app.addListener('request', function (req, res) {
 
   // connection is OK. Proceed normally.
   var args = arguments;
-  _.each(oldAppListeners, function(oldListener) {
-    oldListener.apply(app, args);
+  _.each(oldHttpServerListeners, function(oldListener) {
+    oldListener.apply(httpServer, args);
   });
 });
 

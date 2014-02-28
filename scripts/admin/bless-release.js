@@ -25,6 +25,7 @@ var Future = require('fibers/future');
 var _ = require('underscore');
 
 var files = require('../../tools/files.js');
+var httpHelpers = require('../../tools/http-helpers.js');
 var warehouse = require('../../tools/warehouse.js');
 
 var PLATFORMS = [
@@ -56,8 +57,8 @@ var execFileSync = function (binary, args) {
 };
 
 var getWarehouseFile = function (path, json) {
-  return files.getUrl({
-    url: "https://s3.amazonaws.com/com.meteor.warehouse/" + path,
+  return httpHelpers.getUrl({
+    url: "https://s3.amazonaws.com/meteor-warehouse/" + path,
     json: json
   });
 };
@@ -77,9 +78,7 @@ var checkReleaseDoesNotExistYet = function (release) {
 
 // Writes out a JSON file, pretty-printed and read-only.
 var writeJSONFile = function (path, jsonObject) {
-  fs.writeFileSync(path, JSON.stringify(jsonObject, null, 2));
-  // In 0.10 we can pass a mode to writeFileSync, but not yet...
-  fs.chmodSync(path, 0444);
+  fs.writeFileSync(path, JSON.stringify(jsonObject, null, 2), {mode: 0444});
 };
 var readJSONFile = function (path) {
   return JSON.parse(fs.readFileSync(path));
@@ -172,12 +171,12 @@ var writeGlobalManifest = function (blessedReleaseName, banner) {
 var writeBigRedButton = function (blessedReleaseName, gitTagSourceSha, gitTag) {
   var s3Files = _.map(PLATFORMS, function (platform) {
     return [bootstrapTarballFilename(platform),
-            'com.meteor.warehouse/bootstrap/' + blessedReleaseName];
+            'meteor-warehouse/bootstrap/' + blessedReleaseName];
   });
   s3Files.push([blessedReleaseName + '.notices.json',
-                'com.meteor.warehouse/releases']);
+                'meteor-warehouse/releases']);
   s3Files.push([blessedReleaseName + '.release.json',
-                'com.meteor.warehouse/releases']);
+                'meteor-warehouse/releases']);
   s3Files.push(['manifest.json', 'com.meteor.static/update']);
   var scriptText =
         "#!/bin/bash\n" +

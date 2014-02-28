@@ -20,7 +20,7 @@ Meteor.absoluteUrl = function (path, options) {
   if (path)
     url += path;
 
-  // turn http to http if secure option is set, and we're not talking
+  // turn http to https if secure option is set, and we're not talking
   // to localhost.
   if (options.secure &&
       /^http:/.test(url) && // url starts with 'http:'
@@ -36,5 +36,14 @@ Meteor.absoluteUrl = function (path, options) {
 
 // allow later packages to override default options
 Meteor.absoluteUrl.defaultOptions = { };
-if (__meteor_runtime_config__ && __meteor_runtime_config__.ROOT_URL)
+if (typeof __meteor_runtime_config__ === "object" &&
+    __meteor_runtime_config__.ROOT_URL)
   Meteor.absoluteUrl.defaultOptions.rootUrl = __meteor_runtime_config__.ROOT_URL;
+
+
+Meteor._relativeToSiteRootUrl = function (link) {
+  if (typeof __meteor_runtime_config__ === "object" &&
+      link.substr(0, 1) === "/")
+    link = (__meteor_runtime_config__.ROOT_URL_PATH_PREFIX || "") + link;
+  return link;
+};

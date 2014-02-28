@@ -12,6 +12,15 @@ on the client, just on the server, or *Anywhere*.
 
 {{> api_box isClient}}
 {{> api_box isServer}}
+
+{{#note}}
+`Meteor.isServer` can be used to limit where code runs, but it does not
+prevent code from being sent to the client. Any sensitive code that you
+don't want served to the client, such as code containing passwords or
+authentication mechanisms, should be kept in the `server` directory.
+{{/note}}
+
+
 {{> api_box startup}}
 
 On a server, the function will run as soon as the server process is
@@ -21,7 +30,7 @@ is ready.
 The `startup` callbacks are called in the same order as the calls to
 `Meteor.startup` were made.
 
-On a client, `startup` callbacks from smart packages will be called
+On a client, `startup` callbacks from packages will be called
 first, followed by `<body>` templates from your `.html` files,
 followed by your application code.
 
@@ -53,9 +62,9 @@ that Meteor will call each time a client subscribes to the name.
 
 Publish functions can return a
 [`Collection.Cursor`](#meteor_collection_cursor), in which case Meteor
-will publish that cursor's documents. You can also return an array of
-`Collection.Cursor`s, in which case Meteor will publish all of the
-cursors.
+will publish that cursor's documents to each subscribed client. You can
+also return an array of `Collection.Cursor`s, in which case Meteor will
+publish all of the cursors.
 
 {{#warning}}
 If you return multiple cursors in an array, they currently must all be from
@@ -83,16 +92,15 @@ different collections. We hope to lift this restriction in a future release.
       ];
     });
 
-Otherwise, the publish function should call the functions
-[`added`](#publish_added) (when a new document is added to the published record
-set), [`changed`](#publish_changed) (when some fields on a document in the
-record set are changed or cleared), and [`removed`](#publish_removed) (when
-documents are removed from the published record set) to inform subscribers about
-documents.  These methods are provided by `this` in your publish function.
-
-
-
-<!-- TODO discuss ready -->
+Alternatively, a publish function can directly control its published
+record set by calling the functions [`added`](#publish_added) (to add a
+new document to the published record set), [`changed`](#publish_changed)
+(to change or clear some fields on a document already in the published
+record set), and [`removed`](#publish_removed) (to remove documents from
+the published record set).  Publish functions that use these functions
+should also call [`ready`](#publish_ready) once the initial record set
+is complete.  These methods are provided by `this` in your publish
+function.
 
 Example:
 
@@ -112,7 +120,7 @@ Example:
           count--;
           self.changed("counts", roomId, {count: count});
         }
-        // don't care about moved or changed
+        // don't care about changed
       });
 
       // Observe only returns after the initial added callbacks have
@@ -166,6 +174,8 @@ publish handler, this is the place to stop the observes.
 
 {{> api_box subscription_error}}
 {{> api_box subscription_stop}}
+
+{{> api_box subscription_connection}}
 
 {{> api_box subscribe}}
 
@@ -268,6 +278,7 @@ invocation object, which provides the following:
 begin running.
 * `userId`: the id of the current user.
 * `setUserId`: a function that associates the current client with a user.
+* `connection`: on the server, the [connection](#meteor_onconnection) this method call was received on.
 
 Calling `methods` on the client defines *stub* functions associated with
 server methods of the same name.  You don't have to define a stub for
@@ -319,6 +330,8 @@ On the server, methods from a given client run one at a time. The N+1th
 invocation from a client won't start until the Nth invocation
 returns. However, you can change this by calling `this.unblock`. This
 will allow the N+1th invocation to start running in a new fiber.
+
+{{> api_box method_invocation_connection}}
 
 {{> api_box error}}
 
@@ -407,8 +420,8 @@ options about how the client executes the method.
 
 {{#dtdd name="status" type="String"}}
   表示当前的重连接状态。可能的值有 `connected`（已连接并正在运行）、`connecting`
-  （已断开并尝试打开一个新连接）、`failed`（永久连接失败，例如：客户端与服务器
-  支持的 DDP 版本不同）和 `waiting`（连接已失败并等待尝试重新连接）
+  （已断开并尝试打开一个新连接）、`failed`（连接一直失败，例如：客户端与服务器
+  支持的 DDP 版本不同）、 `waiting`（连接已失败并等待尝试重新连接）和 `offline`（用户已经失去连接）
 {{/dtdd}}
 
 {{#dtdd name="retryCount" type="Number"}}
@@ -430,10 +443,88 @@ options about how the client executes the method.
 
 {{> api_box reconnect}}
 
+{{> api_box disconnect}}
+
+Call this method to disconnect from the server and stop all
+live data updates. While the client is disconnected it will not receive
+updates to collections, method calls will be queued until the
+connection is reestablished, and hot code push will be disabled.
+
+Call [Meteor.reconnect](#meteor_reconnect) to reestablish the connection
+and resume data transfer.
+
+This can be used to save battery on mobile devices when real time
+updates are not required.
+
+
+{{> api_box onConnection}}
+
+`onConnection` returns an object with a single method `stop`.  Calling
+`stop` unregisters the callback, so that this callback will no longer
+be called on new connections.
+
+The callback is called with a single argument, the server-side
+`connection` representing the connection from the client.  This object
+contains the following fields:
+
+<dl class="objdesc">
+{{#dtdd name="id" type="String"}}
+A globally unique id for this connection.
+{{/dtdd}}
+
+{{#dtdd name="close" type="Function"}}
+Close this DDP connection. The client is free to reconnect, but will
+receive a different connection with a new `id` if it does.
+{{/dtdd}}
+
+{{#dtdd name="onClose" type="Function"}}
+Register a callback to be called when the connection is closed. If the
+connection is already closed, the callback will be called immediately.
+{{/dtdd}}
+
+{{#dtdd name="clientAddress" type="String"}}
+  The IP address of the client in dotted form (such as `"127.0.0.1"`).
+
+  If you're running your Meteor server behind a proxy (so that clients
+  are connecting to the proxy instead of to your server directly),
+  you'll need to set the `HTTP_FORWARDED_COUNT` environment variable
+  for the correct IP address to be reported by `clientAddress`.
+
+  Set `HTTP_FORWARDED_COUNT` to an integer representing the number of
+  proxies in front of your server.  For example, you'd set it to `"1"`
+  when your server was behind one proxy.
+{{/dtdd}}
+
+{{#dtdd name="httpHeaders" type="Object"}}
+  When the connection came in over an HTTP transport (such as with
+  Meteor's default SockJS implementation), this field contains
+  whitelisted HTTP headers.
+
+  Cookies are deliberately excluded from the headers as they are a
+  security risk for this transport.  For details and alternatives, see
+  the [SockJS
+  documentation](https://github.com/sockjs/sockjs-node#authorisation).
+{{/dtdd}}
+</dl>
+
+{{#note}}
+Currently when a client reconnects to the server (such as after
+temporarily losing its Internet connection), it will get a new
+connection each time.  The `onConnection` callbacks will be called
+again, and the new connection will have a new connection `id`.
+
+In the future, when client reconnection is fully implemented,
+reconnecting from the client will reconnect to the same connection on
+the server: the `onConnection` callback won't be called for that
+connection again, and the connection will still have the same
+connection `id`.
+{{/note}}
+
+
 {{> api_box connect}}
 
-要在另一个 Meteor 程序上调用方法或订阅它们的数据集合，与一个应用的 URL 一起
-调用 `Meteor.connect`。`Meteor.connect` 就会返回一个提供以下函数的对象：
+
+要调用另一个 Meteor 程序上的方法或订阅它的数据集合，可以调用 `DDP.connect`带上那个Meteor程序的URL。执行`DDP.connect` 会返回一个对象，这个对象提供：
 
 * `subscribe` - 订阅一个记录集。参见 [Meteor.subscribe](#meteor_subscribe)。
 * `call` - 激活一个方法。参见 [Meteor.call](#meteor_call)。
@@ -448,9 +539,6 @@ options about how the client executes the method.
 默认情况下，客户端在它们已载入的地方打开一个连接到服务器。当你调用 `Meteor.subscribe`、
 `Meteor.status`、`Meteor.call` 和 `Meteor.apply` 时，你使用的是返回默认服务器的连接。
 
-{{#warning}}
-在这个版本中，`Meteor.connect` 只能在客户端上被调用。服务器还不能连接其他服务器。
-{{/warning}}
 
 <h2 id="collections"><span>Collections</span></h2>
 
@@ -495,23 +583,30 @@ access the same collection using the same API.
 
 Specifically, when you pass a `name`, here's what happens:
 
-* On the server, a collection with that name is created on a backend
-Mongo server. When you call methods on that collection on the server,
-they translate directly into normal Mongo operations (after checking that
-they match your [access control rules](#allow)).
+* On the server (if you do not specify a `connection`), a collection with that
+name is created on a backend Mongo server. When you call methods on that
+collection on the server, they translate directly into normal Mongo operations
+(after checking that they match your [access control rules](#allow)).
 
-* On the client, a Minimongo instance is
-created. Minimongo is essentially an in-memory, non-persistent
-implementation of Mongo in pure JavaScript. It serves as a local cache
-that stores just the subset of the database that this client is working
-with. Queries on the client ([`find`](#find)) are served directly out of
-this cache, without talking to the server.
+* On the client (and on the server if you specify a `connection`), a Minimongo
+instance is created. Minimongo is essentially an in-memory, non-persistent
+implementation of Mongo in pure JavaScript. It serves as a local cache that
+stores just the subset of the database that this client is working with. Queries
+([`find`](#find)) on these collections are served directly out of this cache,
+without talking to the server.
 
 * When you write to the database on the client ([`insert`](#insert),
-[`update`](#update), [`remove`](#remove)), the command is executed
-immediately on the client, and, simultaneously, it's shipped up to the
-server and executed there too.  The `livedata` package is
-responsible for this.
+[`update`](#update), [`remove`](#remove)), the command is executed locally
+immediately, and, simultaneously, it's sent to the server and executed
+there too. This happens via [stubs](#meteor_methods), because writes are
+implemented as methods.
+
+{{#note}}
+When, on the server, you write to a collection which has a specified
+`connection` to another server, it sends the corresponding method to the other
+server and receives the changed values back from it over DDP. Unlike on the
+client, it does not execute the write locally first.
+{{/note}}
 
 If you pass `null` as the `name`, then you're creating a local
 collection. It's not synchronized anywhere; it's just a local scratchpad
@@ -556,7 +651,8 @@ methods, documents are passed through the `transform` function before being
 returned or passed to callbacks.  This allows you to add methods or otherwise
 modify the contents of your collection from their database representation.  You
 can also specify `transform` on a particular `find`, `findOne`, `allow`, or
-`deny` call.
+`deny` call.  Transform functions must return an object and they may not change
+the value of the document's `_id` field (though it's OK to leave it out).
 
     // An Animal class that takes a document in its constructor
     Animal = function (doc) {
@@ -587,9 +683,7 @@ In this release, Minimongo has some limitations:
 
 * `$pull` in modifiers can only accept certain kinds
 of selectors.
-* `$` to denote the matched array position is not
-supported in modifier.
-* `findAndModify`, upsert, aggregate functions, and
+* `findAndModify`, aggregate functions, and
 map/reduce aren't supported.
 
 All of these will be addressed in a future release. For full
@@ -618,7 +712,7 @@ results of the cursor, or while fetching results from the cursor,
 those changes may or may not appear in the result set.
 {{/warning}}
 
-Cursors are a reactive data source.  The first time you retrieve a
+Cursors are a reactive data source. On the client, the first time you retrieve a
 cursor's documents with `fetch`, `map`, or `forEach` inside a
 reactive computation (eg, a template or
 [`autorun`](#deps_autorun)), Meteor will register a
@@ -627,9 +721,16 @@ changes the documents in a cursor will trigger a recomputation.  To
 disable this behavior, pass `{reactive: false}` as an option to
 `find`.
 
+Note that when `fields` are specified, only changes to the included
+fields will trigger callbacks in `observe`, `observeChanges` and
+invalidations in reactive computations using this cursor. Careful use
+of `fields` allows for more fine-grained reactivity for computations
+that don't depend on an entire document.
+
 {{> api_box findone}}
 
-Equivalent to `find(selector, options).fetch()[0]`.
+Equivalent to `find(selector, options).fetch()[0]` with
+`options.limit = 1`.
 
 {{> api_box insert}}
 
@@ -677,24 +778,27 @@ handlers and a browser's JavaScript console.
   `multi` to true, and can use an arbitrary [Mongo
   selector](#selectors) to find the documents to modify. It bypasses
   any access control rules set up by [`allow`](#allow) and
-  [`deny`](#deny).
+  [`deny`](#deny). The number of affected documents will be returned
+  from the `update` call if you don't pass a callback.
 
 - Untrusted code can only modify a single document at once, specified
   by its `_id`. The modification is allowed only after checking any
-  applicable [`allow`](#allow) and [`deny`](#deny) rules.
+  applicable [`allow`](#allow) and [`deny`](#deny) rules. The number
+  of affected documents will be returned to the callback. Untrusted
+  code cannot perform upserts, except in insecure mode.
 
 On the server, if you don't provide a callback, then `update` blocks
 until the database acknowledges the write, or throws an exception if
 something went wrong.  If you do provide a callback, `update` returns
 immediately.  Once the update completes, the callback is called with a
-single error argument in the case of failure, or no arguments if the
-update was successful.
+single error argument in the case of failure, or a second argument
+indicating the number of affected documents if the update was successful.
 
 On the client, `update` never blocks.  If you do not provide a callback
 and the update fails on the server, then Meteor will log a warning to
 the console.  If you provide a callback, Meteor will call that function
-with an error argument if there was an error, or no arguments if the
-update was successful.
+with an error argument if there was an error, or a second argument
+indicating the number of affected documents if the update was successful.
 
 Client example:
 
@@ -720,9 +824,18 @@ Server example:
       }
     });
 
-{{#warning}}
-The Mongo `upsert` feature is not implemented.
-{{/warning}}
+You can use `update` to perform a Mongo upsert by setting the `upsert`
+option to true. You can also use the [`upsert`](#upsert) method to perform an
+upsert that returns the _id of the document that was inserted (if there was one)
+in addition to the number of affected documents.
+
+{{> api_box upsert}}
+
+Modify documents that match `selector` according to `modifier`, or insert
+a document if no documents were modified. `upsert` is the same as calling
+`update` with the `upsert` option set to true, except that the return
+value of `upsert` is an object that contain the keys `numberAffected`
+and `insertedId`. (`update` returns only the number of affected documents.)
 
 {{> api_box remove}}
 
@@ -738,7 +851,8 @@ handlers and a browser's JavaScript console.
   find the documents to remove, and can remove more than one document
   at once by passing a selector that matches multiple documents. It
   bypasses any access control rules set up by [`allow`](#allow) and
-  [`deny`](#deny).
+  [`deny`](#deny). The number of removed documents will be returned
+  from `remove` if you don't pass a callback.
 
   As a safety measure, if `selector` is omitted (or is `undefined`),
   no documents will be removed. Set `selector` to `{}` if you really
@@ -746,20 +860,22 @@ handlers and a browser's JavaScript console.
 
 - Untrusted code can only remove a single document at a time,
   specified by its `_id`. The document is removed only after checking
-  any applicable [`allow`](#allow) and [`deny`](#deny) rules.
+  any applicable [`allow`](#allow) and [`deny`](#deny) rules. The
+  number of removed documents will be returned to the callback.
 
 On the server, if you don't provide a callback, then `remove` blocks
-until the database acknowledges the write, or throws an exception if
+until the database acknowledges the write and then returns the number
+of removed documents, or throws an exception if
 something went wrong.  If you do provide a callback, `remove` returns
 immediately.  Once the remove completes, the callback is called with a
-single error argument in the case of failure, or no arguments if the
-remove was successful.
+single error argument in the case of failure, or a second argument
+indicating the number of removed documents if the remove was successful.
 
 On the client, `remove` never blocks.  If you do not provide a callback
-and the remove fails on the server, then Meteor will log a warning to
-the console.  If you provide a callback, Meteor will call that function
-with an error argument if there was an error, or no arguments if the
-remove was successful.
+and the remove fails on the server, then Meteor will log a warning to the
+console.  If you provide a callback, Meteor will call that function with an
+error argument if there was an error, or a second argument indicating the number
+of removed documents if the remove was successful.
 
 Client example:
 
@@ -820,9 +936,11 @@ proposed update.) Return `true` to permit the change.
 
 `fieldNames` is an array of the (top-level) fields in `doc` that the
 client wants to modify, for example
-`['name',`&nbsp;`'score']`. `modifier` is the raw Mongo modifier that
-the client wants to execute, for example `{$set: {'name.first':
-"Alice"}, $inc: {score: 1}}`.
+`['name',`&nbsp;`'score']`.
+
+`modifier` is the raw Mongo modifier that
+the client wants to execute; for example,
+`{$set: {'name.first': "Alice"}, $inc: {score: 1}}`.
 
 Only Mongo modifiers are supported (operations like `$set` and `$push`).
 If the user tries to replace the entire document rather than use
@@ -920,6 +1038,8 @@ cursor, use [`forEach`](#foreach), [`map`](#map), or [`fetch`](#fetch).
 
 {{> api_box cursor_foreach}}
 
+This interface is compatible with [Array.forEach](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach).
+
 When called from a reactive computation, `forEach` registers dependencies on
 the matching documents.
 
@@ -934,6 +1054,8 @@ Examples:
     });
 
 {{> api_box cursor_map}}
+
+This interface is compatible with [Array.map](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map).
 
 When called from a reactive computation, `map` registers dependencies on
 the matching documents.
@@ -1131,8 +1253,12 @@ that needs to deal with `_id` fields that may be either strings or `ObjectID`s, 
 
 {{#api_box_inline selectors}}
 
-In its simplest form, a selector is just a set of keys that must
-match in a document:
+The simplest selectors are just a string or
+[`Meteor.Collection.ObjectID`](#collection_object_id). These selectors match the
+document with that value in its `_id` field.
+
+A slightly more complex form of selector is an object containing a set of keys
+that must match in a document:
 
     // Matches all documents where deleted is false
     {deleted: false}
@@ -1155,7 +1281,7 @@ But they can also contain more complicated tests:
     {fruit: {$in: ["peach", "plum", "pear"]}}
 
 See the [complete
-documentation](http://www.mongodb.org/display/DOCS/Advanced+Queries).
+documentation](http://docs.mongodb.org/manual/reference/operator/).
 
 {{/api_box_inline}}
 
@@ -1203,21 +1329,46 @@ it's up to you to be sure.
 
 {{#api_box_inline fieldspecifiers}}
 
-On the server, queries can specify a particular set of fields to include
-or exclude from the result object.  (The field specifier is currently
-ignored on the client.)
+Queries can specify a particular set of fields to include or exclude from the
+result object.
 
-To exclude certain fields from the result objects, the field specifier
-is a dictionary whose keys are field names and whose values are `0`.
+To exclude specific fields from the result objects, the field specifier is a
+dictionary whose keys are field names and whose values are `0`. All unspecified
+fields are included.
 
     // Users.find({}, {fields: {password: 0, hash: 0}})
 
-To return an object that only includes the specified field, use `1` as
-the value.  The `_id` field is still included in the result.
+To include only specific fields in the result documents, use `1` as
+the value. The `_id` field is still included in the result.
 
     // Users.find({}, {fields: {firstname: 1, lastname: 1}})
 
-It is not possible to mix inclusion and exclusion styles.
+With one exception, it is not possible to mix inclusion and exclusion styles:
+the keys must either be all 1 or all 0.  The exception is that you may specify
+`_id: 0` in an inclusion specifier, which will leave `_id` out of the result
+object as well.  However, such field specifiers can not be used with
+[`observeChanges`](#observe_changes), [`observe`](#observe), cursors returned
+from a [publish function](#meteor_publish), or cursors used in
+`{{dstache}}#each}}` in a template. They may be used with [`fetch`](#fetch),
+[`findOne`](#findone), [`forEach`](#foreach), and [`map`](#map).
+
+
+<a href="http://docs.mongodb.org/manual/reference/operator/projection/">Field
+operators</a> such as `$` and `$elemMatch` are not available on the client side
+yet.
+
+A more advanced example:
+
+    Users.insert({ alterEgos: [{ name: "Kira", alliance: "murderer" },
+                               { name: "L", alliance: "police" }],
+                   name: "Yagami Light" });
+
+    Users.findOne({}, { fields: { 'alterEgos.name': 1, _id: 0 } });
+
+    // returns { alterEgos: [{ name: "Kira" }, { name: "L" }] }
+
+See <a href="http://docs.mongodb.org/manual/tutorial/project-fields-from-query-results/#projection">
+the MongoDB docs</a> for details of the nested field rules and array behavior.
 
 {{/api_box_inline}}
 
@@ -1363,7 +1514,7 @@ user document:
         { address: "cool@example.com", verified: true },
         { address: "another@different.com", verified: false }
       ],
-      createdAt: 1349761684042,
+      createdAt: Wed Aug 21 2013 15:16:52 GMT-0700 (PDT),
       profile: {
         // The profile is writable by the user by default.
         name: "Joe Schmoe"
@@ -1390,8 +1541,7 @@ treats the following fields specially:
   an email address may belong to at most one user. `verified` is
   a Boolean which is true if the user has [verified the
   address](#accounts_verifyemail) with a token sent over email.
-- `createdAt`: a numeric timestamp (milliseconds since January 1 1970)
-   of the time the user document was created.
+- `createdAt`: the Date at which the user document was created.
 - `profile`: an Object which (by default) the user can create
   and update with any data.
 - `services`: an Object containing data used by particular
@@ -1438,6 +1588,12 @@ animation while the login request is being processed.
 
 {{> api_box logout}}
 
+{{> api_box logoutOtherClients}}
+
+For example, when called in a user's browser, connections in that browser
+remain logged in, but any other browsers or DDP clients logged in as that user
+will be logged out.
+
 {{> api_box loginWithPassword}}
 
 This function is provided by the `accounts-password` package. See the
@@ -1445,6 +1601,16 @@ This function is provided by the `accounts-password` package. See the
 
 
 {{> api_box loginWithExternalService}}
+
+Available functions are:
+
+* `Meteor.loginWithMeteorDeveloperAccount`
+* `Meteor.loginWithFacebook`
+* `Meteor.loginWithGithub`
+* `Meteor.loginWithGoogle`
+* `Meteor.loginWithMeetup`
+* `Meteor.loginWithTwitter`
+* `Meteor.loginWithWeibo`
 
 These functions initiate the login process with an external
 service (eg: Facebook, Google, etc), using OAuth. When called they open a new pop-up
@@ -1470,20 +1636,21 @@ sites:
 - GitHub: <http://developer.github.com/v3/oauth/#scopes>
 - Google: <https://developers.google.com/accounts/docs/OAuth2Login#scopeparameter>
 - Meetup: <http://www.meetup.com/meetup_api/auth/#oauth2-scopes>
-- Twitter, Weibo: `requestPermissions` currently not supported
+- Twitter, Weibo, Meteor developer accounts: `requestPermissions` currently not supported
 
 External login services typically require registering and configuring
 your application before use. The easiest way to do this is with the
 [`accounts-ui` package](#accountsui) which presents a step-by-step guide
 to configuring each service. However, the data can be also be entered
-manually in the `Accounts.loginServiceConfiguration` collection. For
-example:
+manually in the `ServiceConfiguration.configurations` collection, which
+is exported by the `service-configuration` package. For example, after
+running `meteor add service-configuration` in your app:
 
     // first, remove configuration entry in case service is already configured
-    Accounts.loginServiceConfiguration.remove({
+    ServiceConfiguration.configurations.remove({
       service: "weibo"
     });
-    Accounts.loginServiceConfiguration.insert({
+    ServiceConfiguration.configurations.insert({
       service: "weibo",
       clientId: "1292962797",
       secret: "75a730b58f5691de5522789070c319bc"
@@ -1605,11 +1772,11 @@ On the client, this function logs in as the newly created user on
 successful completion. On the server, it returns the newly created user
 id.
 
-On the client, you must pass `password` and one of `username` or `email`
-&mdash; enough information for the user to be able to log in again
-later. On the server, you can pass any subset of these options, but the
-user will not be able to log in until it has an identifier and a
-password.
+On the client, you must pass `password` and at least one of `username` or
+`email` &mdash; enough information for the user to be able to log in again
+later. On the server, you do not need to specify `password`, but the user will
+not be able to log in until it has a password (eg, set with
+[`Accounts.setPassword`](#accounts_setpassword)).
 
 To create an account without a password on the server and still let the
 user pick their own password, call `createUser` with the `email` option
@@ -1789,7 +1956,7 @@ effects of `created`.  It fires once and is the last callback to fire.
 
 {{> api_box template_events}}
 
-Declare event handers for instances of this template. Multiple calls add
+Declare event handlers for instances of this template. Multiple calls add
 new event handlers in addition to the existing ones.
 
 See [Event Maps](#eventmaps) for a detailed description of the event
@@ -2302,6 +2469,10 @@ Matches any value.
 Matches a primitive of the given type.
 {{/dtdd}}
 
+{{#dtdd "<code>Match.Integer</code>"}}
+Matches a signed 32-bit integer. Doesn't match `Infinity`, `-Infinity`, or `NaN`.
+{{/dtdd}}
+
 {{#dtdd "<code>[<em>pattern</em>]</code>"}}
 A one-element array matches an array of elements, each of which match
 *pattern*. For example, `[Number]` matches a (possibly empty) array of numbers;
@@ -2325,8 +2496,19 @@ Matches any plain Object with any keys; equivalent to
 `Match.ObjectIncluding({})`.
 {{/dtdd}}
 
-{{#dtdd "<code>Match.Optional(<em>pattern</em>)</code>"}}
-Matches either `undefined` or something that matches *pattern*.
+{{#dtdd "<code>Match.Optional(<em>pattern</em>)</code>"}} Matches either
+`undefined` or something that matches pattern. If used in an object this matches
+only if the key is not set as opposed to the value being set to `undefined`.
+
+    // In an object
+    var pat = { name: Match.Optional(String) };
+    check({ name: "something" }, pat) // OK
+    check({}, pat) // OK
+    check({ name: undefined }, pat) // Throws an exception
+
+    // Outside an object
+    check(undefined, Match.Optional(String)); // OK
+
 {{/dtdd}}
 
 {{#dtdd "<code>Match.OneOf(<em>pattern1</em>, <em>pattern2</em>, ...)</code>"}}
@@ -2348,7 +2530,7 @@ from the call to `check` or `Match.test`. Examples:
     NonEmptyString = Match.Where(function (x) {
       check(x, String);
       return x.length > 0;
-    }
+    });
     check(arg, NonEmptyString);
 {{/dtdd}}
 </dl>
@@ -2364,7 +2546,9 @@ these variables have the right values, you need to use
 instead of `setInterval`.
 
 These functions work just like their native JavaScript equivalents.
-You'll get an error if you call the native function.
+If you call the native function, you'll get an error stating that Meteor
+code must always run within a Fiber, and advising to use
+`Meteor.bindEnvironment`.
 
 {{> api_box setTimeout}}
 
@@ -2467,7 +2651,7 @@ exactly the same work as `Deps.flush`.  The flushing process consists
 of rerunning any invalidated computations.  If additional
 invalidations happen while flushing, they are processed as part of the
 same flush until there is no more work to be done.  Callbacks
-registered with [`Meteor.afterFlush`](#deps_afterflush) are called
+registered with [`Deps.afterFlush`](#deps_afterflush) are called
 after processing outstanding invalidations.
 
 Any auto-updating DOM elements that are found to not be in the
@@ -2483,9 +2667,10 @@ computation.
 
 {{> api_box deps_nonreactive }}
 
-Calls `func()` with `Deps.currentComputation` temporarily set to
-`null`.  If `func` accesses reactive data sources, these data sources
-will never cause a rerun of the enclosing computation.
+Calls `func` with `Deps.currentComputation` temporarily set to `null`
+and returns `func`'s own return value.  If `func` accesses reactive data
+sources, these data sources will never cause a rerun of the enclosing
+computation.
 
 {{> api_box deps_active }}
 
@@ -2744,19 +2929,10 @@ When you add a type to EJSON, Meteor will be able to use that type in:
 
 {{/note}}
 
-Instances of your type should implement the following interface:
-
-{{> api_box ejsonTypeClone}}
-
-{{> api_box ejsonTypeEquals}}
-
-The `equals` method should define an [equivalence
-relation](http://en.wikipedia.org/wiki/Equivalence_relation).  It should have
-the following properties:
-
- - *Reflexivity* - for any instance `a`: `a.equals(a)` must be true.
- - *Symmetry* - for any two instances `a` and `b`: `a.equals(b)` if and only if `b.equals(a)`.
- - *Transitivity* - for any three instances `a`, `b`, and `c`: `a.equals(b)` and `b.equals(c)` implies `a.equals(c)`.
+Instances of your type must implement [`typeName`](#ejson_type_typeName) and
+[`toJSONValue`](#ejson_type_toJSONValue) methods, and may implement
+[`clone`](#ejson_type_clone) and [`equals`](#ejson_type_equals) methods if the
+default implementations are not sufficient.
 
 {{> api_box ejsonTypeName}}
 {{> api_box ejsonTypeToJSONValue}}
@@ -2768,25 +2944,44 @@ For example, the `toJSONValue` method for
       return this.toHexString();
     };
 
-<h2 id="meteor_http"><span>Meteor.http</span></h2>
+{{> api_box ejsonTypeClone}}
 
-`Meteor.http` provides an HTTP API on the client and server.  To use
-these functions, add the HTTP package to your project with `$ meteor add
-http`.
+If your type does not have a `clone` method, `EJSON.clone` will use
+[`toJSONValue`](#ejson_type_toJSONValue) and the factory instead.
+
+{{> api_box ejsonTypeEquals}}
+
+The `equals` method should define an [equivalence
+relation](http://en.wikipedia.org/wiki/Equivalence_relation).  It should have
+the following properties:
+
+ - *Reflexivity* - for any instance `a`: `a.equals(a)` must be true.
+ - *Symmetry* - for any two instances `a` and `b`: `a.equals(b)` if and only if `b.equals(a)`.
+ - *Transitivity* - for any three instances `a`, `b`, and `c`: `a.equals(b)` and `b.equals(c)` implies `a.equals(c)`.
+
+If your type does not have an `equals` method, `EJSON.equals` will compare the
+result of calling [`toJSONValue`](#ejson_type_toJSONValue) instead.
+
+
+<h2 id="http"><span>HTTP</span></h2>
+
+`HTTP` provides an HTTP request API on the client and server.  To use
+these functions, add the HTTP package to your project with `$ meteor add http`.
 
 {{> api_box httpcall}}
 
-This function initiates an HTTP request to a remote server. It returns
-a result object with the contents of the HTTP response.  The result
-object is detailed below.
+This function initiates an HTTP request to a remote server.
 
 On the server, this function can be run either synchronously or
-asynchronously.  If the callback is omitted, it runs synchronously,
-and the results are returned once the request completes. This is
+asynchronously.  If the callback is omitted, it runs synchronously
+and the results are returned once the request completes successfully.
+If the request was not successful, an error is thrown.
+This is
 useful when making server-to-server HTTP API calls from within Meteor
 methods, as the method can succeed or fail based on the results of the
 synchronous HTTP call.  In this case, consider using
-[`this.unblock()`](#method_unblock) to allow other methods to run in
+[`this.unblock()`](#method_unblock) to allow other methods on the same
+connection to run in
 the mean time.  On the client, this function must be used
 asynchronously by passing a callback.
 
@@ -2806,7 +3001,8 @@ standard `x-www-form-urlencoded` content type, unless the `content`
 or `data` option is used to specify a body, in which case the
 parameters will be appended to the URL instead.
 
-The callback receives two arguments, `error` and `result`.  The
+When run in asynchronous mode, the callback receives two arguments,
+`error` and `result`.  The
 `error` argument will contain an Error if the request fails in any
 way, including a network error, time-out, or an HTTP status code in
 the 400 or 500 range.  In case of a 4xx/5xx HTTP status code, the
@@ -2841,22 +3037,25 @@ Example server method:
     Meteor.methods({checkTwitter: function (userId) {
       check(userId, String);
       this.unblock();
-      var result = Meteor.http.call("GET", "http://api.twitter.com/xyz",
-                                    {params: {user: userId}});
-      if (result.statusCode === 200)
-         return true
-      return false;
+      try {
+        var result = HTTP.call("GET", "http://api.twitter.com/xyz",
+                               {params: {user: userId}});
+        return true;
+      } catch (e) {
+        // Got a network error, time-out or HTTP error in the 400 or 500 range.
+        return false;
+      }
     }});
 
 Example asynchronous HTTP call:
 
-    Meteor.http.call("POST", "http://api.twitter.com/xyz",
-                     {data: {some: "json", stuff: 1}},
-                     function (error, result) {
-                       if (result.statusCode === 200) {
-                         Session.set("twizzled", true);
-                       }
-                     });
+    HTTP.call("POST", "http://api.twitter.com/xyz",
+              {data: {some: "json", stuff: 1}},
+              function (error, result) {
+                if (!error) {
+                  Session.set("twizzled", true);
+                }
+              });
 
 
 {{> api_box http_get}}
@@ -2919,6 +3118,25 @@ by spammers.)
                 'This is a test of Email.send.');
 
 {{/better_markdown}}
+
+<h2 id="assets"><span>Assets</span></h2>
+
+{{#better_markdown}}
+`Assets` allows server code in a Meteor application to access static server
+assets, which are located in the `private` subdirectory of an application's
+tree.
+
+{{> api_box assets_getText }}
+{{> api_box assets_getBinary }}
+
+Static server assets are included by placing them in the application's `private`
+subdirectory. For example, if an application's `private` subdirectory includes a
+directory called `nested` with a file called `data.txt` inside it, then server
+code can read `data.txt` by running:
+
+    var data = Assets.getText('nested/data.txt');
+{{/better_markdown}}
+
 </template>
 
 
